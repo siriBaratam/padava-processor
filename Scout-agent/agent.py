@@ -8,6 +8,7 @@ from datetime import date
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 NEWSAPI_KEY = os.getenv("NEWS_API_KEY")
+STATE_FILE = BASE_DIR / "scout_output.json"
 
 # ── load YOUR model (no Gemini needed) ────────
 model_path = BASE_DIR / "scout_model.pkl"
@@ -59,6 +60,7 @@ def fetch_news(max_articles=20):
                 "summary":  (a.get("description") or "")[:300],
                 "source":   a.get("source", {}).get("name", "unknown"),
                 "link":     a.get("url", ""),
+                "published_at": a.get("publishedAt", ""),
             })
         print(f"  Fetched {len(articles)} articles")
         return articles
@@ -209,14 +211,16 @@ def show(r):
     print(f"    Source   : {r['source']}")
     print(f"    {'─'*55}")
 
-# ── save ──────────────────────────────────────
-def save(r):
-    with open("Scout-agent/scout_output.json", "a") as f:
-        f.write(json.dumps(r) + "\n")
+# ── state handling ─────────────────────────────
+def save_latest_results(results):
+    payload = {"entries": results}
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
 
 # ── loop ──────────────────────────────────────
 def run(interval_minutes=1):
     print("🛰️  Scout Agent running — YOUR model, no Gemini\n")
+
     cycle = 0
     while True:
         cycle += 1
@@ -226,14 +230,16 @@ def run(interval_minutes=1):
 
         articles = fetch_news()
         bad_count = 0
+        results = []
         for item in articles:
             result = classify(item)
             show(result)
-            save(result)
+            results.append(result)
             if result["classification"] == "BAD":
                 bad_count += 1
 
-        print(f"\n  Summary: {bad_count} bad signals / {len(articles)} articles")
+        save_latest_results(results)
+        print(f"\n  Summary: {bad_count} bad signals / {len(articles)} articles / {len(results)} items stored for this cycle")
         if bad_count >= 3:
             print("  ⚠️  HIGH ALERT")
 
