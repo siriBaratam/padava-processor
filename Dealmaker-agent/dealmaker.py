@@ -1,4 +1,4 @@
-import os, json, re, argparse, requests, sys
+import os, json, re, argparse, requests, subprocess, sys
 from datetime import datetime
 from pathlib import Path
 
@@ -319,6 +319,46 @@ def save_result(data):
     print(f"\n  Result saved to {output_path}")
 
 
+def run_navigator(country, resource):
+    """Run the Navigator agent as a subprocess with Dealmaker's recommendation."""
+    navigator_script = BASE_DIR.parent / "Navigator-agent" / "navigator.py"
+    if not navigator_script.exists():
+        print(f"\n  ⚠️  Navigator agent not found at {navigator_script}")
+        print("  Skipping route planning.")
+        return
+
+    dealmaker_output = BASE_DIR / "dealmaker_output.json"
+
+    print(f"\n{'─'*60}")
+    print(f"  Launching Navigator Agent for route planning...")
+    print(f"  Country : {country}")
+    print(f"  Resource: {resource}")
+    print(f"{'─'*60}\n")
+
+    try:
+        result = subprocess.run(
+            [
+                sys.executable, str(navigator_script),
+                "--country-from", str(dealmaker_output),
+                "--resource", resource,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
+        )
+        if result.returncode != 0:
+            print(f"\n  Navigator agent exited with code {result.returncode}")
+            if result.stderr:
+                print(f"  stderr: {result.stderr.strip()[:500]}")
+        if result.stdout:
+            print(result.stdout.strip())
+    except FileNotFoundError:
+        print(f"  Could not find Python executable to run Navigator agent")
+    except Exception as e:
+        print(f"  Error launching Navigator agent: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Dealmaker Agent — source alternative crude oil / LPG supply for India"
@@ -336,9 +376,22 @@ def main():
         default=os.getenv("DEALMAKER_SHORTAGE", "45,000 barrels/day"),
         help="Shortage amount India needs to replace (e.g. '45,000 barrels/day')",
     )
+    parser.add_argument(
+        "--run-navigator",
+        "-n",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Automatically run Navigator agent for route planning after a successful deal (default: True)",
+    )
     args = parser.parse_args()
 
-    run_deal(args.resource, args.shortage)
+    data = run_deal(args.resource, args.shortage)
+
+    # Auto-launch Navigator if we got a valid recommendation
+    if args.run_navigator and data and not data.get("error"):
+        recommended = data.get("recommended_country", "")
+        if recommended:
+            run_navigator(recommended, args.resource)
 
 
 if __name__ == "__main__":
