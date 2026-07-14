@@ -1,5 +1,6 @@
 .env
-Scout-agent\create_dataset.py
-Scout-agent\train_model.py
-Scout-agent\training.py
-Scout-agent\training_data.csv
+create_dataset.py
+train_model.py
+training.py
+training_data.csv
+scout_output.json
