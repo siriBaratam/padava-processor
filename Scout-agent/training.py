@@ -127,4 +127,4 @@ import pandas as pd
 df = pd.DataFrame(labeled)
 df.to_csv("Scout-agent/training_data.csv", index=False)
 print(f"\nSaved {len(df)} labeled examples to training_data.csv")
-print(df["label"].value_counts())
+print(df["label"].value_counts())  

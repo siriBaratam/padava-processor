@@ -73,7 +73,7 @@ y_pred = pipeline.predict(X_test)
 print("\nModel performance:")
 print(classification_report(y_test, y_pred, zero_division=0))
 
-# ── save model to disk ────────────────────────
+
 model_path = "scout_model.pkl"
 joblib.dump(pipeline, model_path)
 print(f"\nModel saved to {model_path}")
