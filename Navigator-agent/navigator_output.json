@@ -1,0 +1,188 @@
+{
+    "country": "United Arab Emirates",
+    "resource": "crude_oil",
+    "status": "completed",
+    "started_at": "2026-07-14 12:47:24",
+    "finished_at": "2026-07-14 12:47:27",
+    "routes": [
+        {
+            "mode": "sea",
+            "origin_country": "United Arab Emirates",
+            "origin_port": "Das Island",
+            "destination_port": "Mundra",
+            "waypoints": [
+                {
+                    "name": "Das Island",
+                    "lat": 25.15,
+                    "lng": 52.867,
+                    "type": "origin_port"
+                },
+                {
+                    "name": "Bab-el-Mandeb",
+                    "lat": 12.583,
+                    "lng": 43.5,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Strait of Malacca",
+                    "lat": 2.0,
+                    "lng": 102.0,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Strait of Malacca",
+                    "lat": 2.0,
+                    "lng": 102.0,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Mundra",
+                    "lat": 22.75,
+                    "lng": 69.717,
+                    "type": "destination_port"
+                }
+            ],
+            "distance_km": 5603,
+            "estimated_transit_days": 20,
+            "chokepoints": [
+                "Bab-el-Mandeb",
+                "Strait of Malacca"
+            ],
+            "risk_notes": "Possible congestion due to increased trade after Iran-US agreement."
+        },
+        {
+            "mode": "sea",
+            "origin_country": "United Arab Emirates",
+            "origin_port": "Fujairah",
+            "destination_port": "Chennai",
+            "waypoints": [
+                {
+                    "name": "Fujairah",
+                    "lat": 25.133,
+                    "lng": 56.35,
+                    "type": "origin_port"
+                },
+                {
+                    "name": "Strait of Hormuz",
+                    "lat": 26.567,
+                    "lng": 56.25,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Cape of Good Hope",
+                    "lat": -34.5,
+                    "lng": 18.5,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Cape of Good Hope",
+                    "lat": -34.5,
+                    "lng": 18.5,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Chennai",
+                    "lat": 13.083,
+                    "lng": 80.283,
+                    "type": "destination_port"
+                }
+            ],
+            "distance_km": 7700,
+            "estimated_transit_days": 28,
+            "chokepoints": [
+                "Strait of Hormuz",
+                "Cape of Good Hope"
+            ],
+            "risk_notes": "Geopolitical tensions in the Middle East and pirate activity in the Indian Ocean."
+        },
+        {
+            "mode": "sea",
+            "origin_country": "United Arab Emirates",
+            "origin_port": "Das Island",
+            "destination_port": "Visakhapatnam",
+            "waypoints": [
+                {
+                    "name": "Das Island",
+                    "lat": 25.15,
+                    "lng": 52.867,
+                    "type": "origin_port"
+                },
+                {
+                    "name": "Strait of Hormuz",
+                    "lat": 26.567,
+                    "lng": 56.25,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Bab-el-Mandeb",
+                    "lat": 12.583,
+                    "lng": 43.5,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Bab-el-Mandeb",
+                    "lat": 12.583,
+                    "lng": 43.5,
+                    "type": "chokepoint"
+                },
+                {
+                    "name": "Visakhapatnam",
+                    "lat": 17.683,
+                    "lng": 83.3,
+                    "type": "destination_port"
+                }
+            ],
+            "distance_km": 6703,
+            "estimated_transit_days": 25,
+            "chokepoints": [
+                "Strait of Hormuz",
+                "Bab-el-Mandeb"
+            ],
+            "risk_notes": "Possible congestion due to increased trade after Iran-US agreement and pirate activity in the Indian Ocean."
+        }
+    ],
+    "recommended_route_index": 1,
+    "recommendation_reason": "Route 2 is the safest option, avoiding Bab-el-Mandeb, but Route 1 is the fastest option and Route 3 avoids Strait of Hormuz.",
+    "checkpoints": [
+        {
+            "name": "initialized",
+            "status": "in_progress",
+            "details": {
+                "country": "United Arab Emirates",
+                "resource": "crude_oil"
+            }
+        },
+        {
+            "name": "news_fetch",
+            "status": "completed",
+            "details": {
+                "article_count": 5
+            }
+        },
+        {
+            "name": "prompt_ready",
+            "status": "completed",
+            "details": {
+                "prompt_length": 8800
+            }
+        },
+        {
+            "name": "llm_response",
+            "status": "completed",
+            "details": {
+                "response_length": 3567
+            }
+        },
+        {
+            "name": "validation",
+            "status": "completed",
+            "details": {
+                "warnings": []
+            }
+        }
+    ],
+    "validation_warnings": [],
+    "error": false,
+    "raw_response": "{\n  \"country\": \"United Arab Emirates\",\n  \"resource\": \"crude_oil\",\n  \"routes\": [\n    {\n      \"mode\": \"sea\",\n      \"origin_country\": \"United Arab Emirates\",\n      \"origin_port\": \"Das Island\",\n      \"destination_port\": \"Mundra\",\n      \"waypoints\": [\n        {\n          \"name\": \"Das Island\",\n          \"lat\": 25.15,\n          \"lng\": 52.867,\n          \"type\": \"origin_port\"\n        },\n        {\n          \"name\": \"Bab-el-Mandeb\",\n          \"lat\": 12.583,\n          \"lng\": 43.5,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Strait of Malacca\",\n          \"lat\": 2.0,\n          \"lng\": 102.0,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Strait of Malacca\",\n          \"lat\": 2.0,\n          \"lng\": 102.0,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Mundra\",\n          \"lat\": 22.75,\n          \"lng\": 69.717,\n          \"type\": \"destination_port\"\n        }\n      ],\n      \"distance_km\": 5603,\n      \"estimated_transit_days\": 20,\n      \"chokepoints\": [\"Bab-el-Mandeb\", \"Strait of Malacca\"],\n      \"risk_notes\": \"Possible congestion due to increased trade after Iran-US agreement.\"\n    },\n    {\n      \"mode\": \"sea\",\n      \"origin_country\": \"United Arab Emirates\",\n      \"origin_port\": \"Fujairah\",\n      \"destination_port\": \"Chennai\",\n      \"waypoints\": [\n        {\n          \"name\": \"Fujairah\",\n          \"lat\": 25.133,\n          \"lng\": 56.35,\n          \"type\": \"origin_port\"\n        },\n        {\n          \"name\": \"Strait of Hormuz\",\n          \"lat\": 26.567,\n          \"lng\": 56.25,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Cape of Good Hope\",\n          \"lat\": -34.5,\n          \"lng\": 18.5,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Cape of Good Hope\",\n          \"lat\": -34.5,\n          \"lng\": 18.5,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Chennai\",\n          \"lat\": 13.083,\n          \"lng\": 80.283,\n          \"type\": \"destination_port\"\n        }\n      ],\n      \"distance_km\": 7700,\n      \"estimated_transit_days\": 28,\n      \"chokepoints\": [\"Strait of Hormuz\", \"Cape of Good Hope\"],\n      \"risk_notes\": \"Geopolitical tensions in the Middle East and pirate activity in the Indian Ocean.\"\n    },\n    {\n      \"mode\": \"sea\",\n      \"origin_country\": \"United Arab Emirates\",\n      \"origin_port\": \"Das Island\",\n      \"destination_port\": \"Visakhapatnam\",\n      \"waypoints\": [\n        {\n          \"name\": \"Das Island\",\n          \"lat\": 25.15,\n          \"lng\": 52.867,\n          \"type\": \"origin_port\"\n        },\n        {\n          \"name\": \"Strait of Hormuz\",\n          \"lat\": 26.567,\n          \"lng\": 56.25,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Bab-el-Mandeb\",\n          \"lat\": 12.583,\n          \"lng\": 43.5,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Bab-el-Mandeb\",\n          \"lat\": 12.583,\n          \"lng\": 43.5,\n          \"type\": \"chokepoint\"\n        },\n        {\n          \"name\": \"Visakhapatnam\",\n          \"lat\": 17.683,\n          \"lng\": 83.3,\n          \"type\": \"destination_port\"\n        }\n      ],\n      \"distance_km\": 6703,\n      \"estimated_transit_days\": 25,\n      \"chokepoints\": [\"Strait of Hormuz\", \"Bab-el-Mandeb\"],\n      \"risk_notes\": \"Possible congestion due to increased trade after Iran-US agreement and pirate activity in the Indian Ocean.\"\n    }\n  ],\n  \"recommended_route_index\": 1,\n  \"recommendation_reason\": \"Route 2 is the safest option, avoiding Bab-el-Mandeb, but Route 1 is the fastest option and Route 3 avoids Strait of Hormuz.\"\n}",
+    "timestamp": "2026-07-14 12:47:27"
+}
