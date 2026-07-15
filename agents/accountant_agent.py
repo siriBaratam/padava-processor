@@ -142,3 +142,45 @@ class AccountantAgent:
 
 if __name__ == "__main__":
     print("AccountantAgent module. Import and inject tools in production.")
+
+
+class AccountantAgnoWrapper:
+    """A thin wrapper to mimic an Agno agent execution interface.
+    It exposes `run(disruption_report)` which the orchestrator/Agno runtime
+    can call. The wrapper uses an internal AccountantAgent instance and a
+    tool invoker to perform tool calls through a single entrypoint.
+    """
+
+    def __init__(self, accountant: AccountantAgent, tool_invoker) -> None:
+        self._accountant = accountant
+        self._invoker = tool_invoker
+
+    def run(self, disruption_report: dict) -> dict:
+        """Execute the Accountant flow. This method is the Agno entrypoint.
+        It will call tools via the provided `tool_invoker` which abstracts
+        the underlying tool implementations.
+        """
+        # Replace direct tool attributes of accountant with proxied callables
+        # that use the invoker. This keeps the accountant logic unchanged while
+        # ensuring tools are invoked through the Agno tool invoker.
+        class ProxyTool:
+            def __init__(self, invoker, name):
+                self._invoker = invoker
+                self._name = name
+
+            def __getattr__(self, item):
+                # only support direct method names used by accountant
+                def caller(*args, **kwargs):
+                    return self._invoker.call_tool(self._name, item, *args, **kwargs)
+
+                return caller
+
+        # Inject proxied tools
+        self._accountant.consumption_tool = ProxyTool(self._invoker, "consumption")
+        self._accountant.stock_tool = ProxyTool(self._invoker, "stock")
+        self._accountant.shipping_tool = ProxyTool(self._invoker, "shipping")
+        self._accountant.refinery_tool = ProxyTool(self._invoker, "refinery")
+
+        # Run assessment
+        return self._accountant.assess(disruption_report)
+
