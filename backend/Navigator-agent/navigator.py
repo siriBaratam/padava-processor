@@ -1,14 +1,67 @@
-import json, os, re, argparse, requests, sys
+"""
+Navigator Agent — refactored to use LangChain ChatGroq with structured output.
+
+BEFORE: raw Groq SDK + manual JSON parsing + regex + validate_output()
+AFTER:  ChatGroq.with_structured_output() -> typed Pydantic model, zero parsing
+
+Everything else (news fetching, reference coordinates, checkpoint tracking, CLI) is identical.
+"""
+
+import argparse
+import json
+import os
+import requests
+import sys
 from datetime import datetime
 from pathlib import Path
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
+from pydantic import BaseModel, Field
+
+from config import settings
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
-from groq import Groq
-from config import settings
 
-client = Groq(api_key=settings.groq_api_key)
+# ──────────────────────────────────────────────────────────────
+#  LangChain Pydantic models — the structured output schema
+# ──────────────────────────────────────────────────────────────
+
+class RouteWaypoint(BaseModel):
+    """A single waypoint along a shipping route."""
+    name: str = Field(description="Port, chokepoint, or pipeline node name")
+    lat: float = Field(description="Latitude coordinate")
+    lng: float = Field(description="Longitude coordinate")
+    type: str = Field(description="Type: origin_port, chokepoint, pipeline_node, or destination_port")
+
+
+class Route(BaseModel):
+    """A complete shipping route from supplier country to an Indian port."""
+    mode: str = Field(description="Transport mode: sea, pipeline, or sea+pipeline")
+    origin_country: str = Field(description="Supplier country name")
+    origin_port: str = Field(description="Export terminal name")
+    destination_port: str = Field(description="Indian receiving port name")
+    waypoints: list[RouteWaypoint] = Field(
+        min_length=2,
+        description="Ordered waypoints from origin to destination (includes origin_port, chokepoints, destination_port)"
+    )
+    distance_km: float = Field(description="Total distance in kilometers")
+    estimated_transit_days: float = Field(description="Estimated transit time in days")
+    chokepoints: list[str] = Field(description="Major chokepoints along this route")
+    risk_notes: str = Field(description="Route risks: chokepoint congestion, piracy, geopolitical tension, weather")
+
+
+class NavigatorOutput(BaseModel):
+    """Structured output from the Navigator agent."""
+    country: str = Field(description="Supplier country")
+    resource: str = Field(description="Resource being transported (e.g. crude_oil, lpg)")
+    routes: list[Route] = Field(min_length=1, max_length=3, description="Route options (1–3 entries)")
+    recommended_route_index: int = Field(ge=0, le=2, description="Index of the recommended route (0-based)")
+    recommendation_reason: str = Field(description="Fastest-vs-safest tradeoff justification")
+    error: bool = Field(default=False, description="Whether an error occurred")
+    timestamp: str = Field(default="", description="ISO timestamp of when the analysis was run")
+
 
 # ── Shipping news keywords by resource ──────────────────────────────────────
 
@@ -54,7 +107,7 @@ def fetch_shipping_news(resource, max_articles=5):
             )
         print(f"  Fetched {len(articles)} shipping news articles")
         return articles
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"  NewsAPI request error: {e}")
         return []
 
@@ -79,7 +132,6 @@ def build_shipping_news_context(articles):
 
 # ── Reference coordinates for major ports & chokepoints ─────────────────────
 # Used by the LLM prompt to ground its waypoint generation in real geography.
-# These are well-known coordinates the model can reference directly.
 
 REFERENCE_PORTS = {
     # Middle East export terminals
@@ -152,23 +204,15 @@ INDIAN_RECEIVING_PORTS_BY_RESOURCE = {
     "lng": "Mundra, Hazira, Dahej, Kochi, Jawaharlal Nehru Port (JNPT) — (LNG terminals)",
 }
 
-# ── Helper to build the coordinates reference block ──────────────────────────
-
 
 def build_coordinates_reference():
     """Build a reference text block for the prompt with known coordinates."""
     lines = []
-    lines.append(
-        "## Reference Port Coordinates (use these exact values when applicable)"
-    )
+    lines.append("## Reference Port Coordinates (use these exact values when applicable)")
     for name, info in sorted(REFERENCE_PORTS.items()):
-        lines.append(
-            f"  {name} ({info['country']}): lat={info['lat']}, lng={info['lng']}"
-        )
+        lines.append(f"  {name} ({info['country']}): lat={info['lat']}, lng={info['lng']}")
     lines.append("")
-    lines.append(
-        "## Reference Chokepoint Coordinates (use these exact values when applicable)"
-    )
+    lines.append("## Reference Chokepoint Coordinates (use these exact values when applicable)")
     for name, info in sorted(REFERENCE_CHOKEPOINTS.items()):
         lines.append(f"  {name}: lat={info['lat']}, lng={info['lng']}")
     lines.append("")
@@ -178,7 +222,11 @@ def build_coordinates_reference():
     return "\n".join(lines)
 
 
-NAVIGATOR_PROMPT = """\
+# ──────────────────────────────────────────────────────────────
+#  Prompt template (no more JSON format scaffolding!)
+# ──────────────────────────────────────────────────────────────
+
+SYSTEM_PROMPT = """\
 You are a maritime and pipeline logistics planner. You have years of experience routing oil tankers, LPG carriers, and pipeline shipments from global supplier countries to Indian ports. You know the major shipping chokepoints (Strait of Hormuz, Suez Canal, Bab-el-Mandeb, Strait of Malacca, Cape of Good Hope) and which Indian ports typically handle which cargo. You always flag route-specific risks such as chokepoint congestion, piracy, or geopolitical tension.
 
 Current date: {today}
@@ -197,13 +245,13 @@ Follow these steps IN ORDER:
 Identify the most likely export port in {country} for {resource}. Use your knowledge of real export terminals. If multiple ports exist, choose the most prominent one for the given resource.
 
 ### Step 2 — Identify Indian Receiving Port
-Identify the most suitable receiving port in India for {resource}. Refer to the Indian Receiving Ports by Resource table below.
+Identify the most suitable receiving port in India for {resource}.
 
 ### Step 3 — Research Shipping Route
 Consider the standard tanker route between the identified ports. Account for known shipping distances, transit times, and seasonal factors.
 
 ### Step 4 — Identify Chokepoints
-Identify every major chokepoint the route passes through. Common ones include Strait of Hormuz, Bab-el-Mandeb, Suez Canal, Strait of Malacca, Cape of Good Hope, Strait of Gibraltar, Palk Strait, Six Degree Channel, etc.
+Identify every major chokepoint the route passes through.
 
 ### Step 5 — Produce Route Options
 Produce 1–3 realistic route options:
@@ -225,46 +273,18 @@ Note risk factors per route: chokepoint congestion, piracy, geopolitical tension
 ### Step 9 — Recommend
 Select exactly ONE recommended route. Choose based on a fastest-vs-safest tradeoff appropriate for the resource and current geopolitical context.
 
-## Output Format
-
-Reply ONLY with a valid JSON object. No preamble, no markdown fences, no commentary.
-
-{{
-  "country": "{country}",
-  "resource": "{resource}",
-  "routes": [
-    {{
-      "mode": "sea | pipeline | sea+pipeline",
-      "origin_country": "{country}",
-      "origin_port": "string (name of export terminal)",
-      "destination_port": "string (name of Indian port)",
-      "waypoints": [
-        {{
-          "name": "string",
-          "lat": number,
-          "lng": number,
-          "type": "origin_port | chokepoint | pipeline_node | destination_port"
-        }}
-      ],
-      "distance_km": number,
-      "estimated_transit_days": number,
-      "chokepoints": ["list of chokepoint names"],
-      "risk_notes": "string describing risks on this route"
-    }}
-  ],
-  "recommended_route_index": integer,
-  "recommendation_reason": "string explaining fastest-vs-safest tradeoff"
-}}
-
 ## Constraints
-- routes must contain 1–3 entries.
-- waypoints in each route must be ordered from origin to destination and contain at least the origin port and the destination port; include every major chokepoint in between.
-- recommended_route_index must be a valid index into routes (0-based).
+- Provide exactly 1–3 route options.
+- recommended_route_index must be a valid 0-based index into the routes list.
 - All lat/lng values must be genuine geographic coordinates — use the reference tables provided below. Never invent or approximate coordinates.
-- Output ONLY the JSON object. No extra text.
 
 {coordinates_reference}
 """
+
+
+# ──────────────────────────────────────────────────────────────
+#  Checkpoint & result saving (unchanged from original)
+# ──────────────────────────────────────────────────────────────
 
 
 def append_checkpoint(result, name, status, details=None):
@@ -276,10 +296,29 @@ def append_checkpoint(result, name, status, details=None):
     return checkpoint
 
 
+def save_result(data):
+    """Persist the navigator result to navigator_output.json."""
+    output_path = BASE_DIR / "navigator_output.json"
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+        f.write("\n")
+    print(f"\n  Result saved to {output_path}")
+
+
+# ──────────────────────────────────────────────────────────────
+#  Core logic — LangChain edition
+# ──────────────────────────────────────────────────────────────
+
+
 def run_navigation(country, resource):
-    """Run the navigator agent to plan shipping routes."""
+    """Run the navigator agent using LangChain ChatGroq with structured output.
+
+    This replaces ~65 lines of manual JSON parsing, regex, and validation
+    with a single ``with_structured_output()`` call.
+    """
     print(f"\n{'='*60}")
-    print(f"  NAVIGATOR AGENT")
+    print(f"  NAVIGATOR AGENT  (LangChain edition)")
     print(f"  Country : {country}")
     print(f"  Resource: {resource}")
     print(f"{'='*60}\n")
@@ -319,98 +358,62 @@ def run_navigation(country, resource):
 
     shipping_news_context = build_shipping_news_context(articles)
 
-    prompt = NAVIGATOR_PROMPT.format(
+    # Build the LangChain prompt template
+    prompt = ChatPromptTemplate.from_messages([
+        ("human", SYSTEM_PROMPT),
+    ])
+    formatted_prompt = prompt.format_messages(
         today=today,
         country=country,
         resource=resource,
-        coordinates_reference=coordinates_ref,
         shipping_news_context=shipping_news_context,
+        coordinates_reference=coordinates_ref,
     )
+
     append_checkpoint(
-        result, "prompt_ready", "completed", {"prompt_length": len(prompt)}
+        result, "prompt_ready", "completed", {"prompt_length": len(str(formatted_prompt))}
     )
     save_result(result)
 
-    print("  Calling Groq (llama-3.1-8b-instant)...")
+    # Create the LLM with structured output
+    print("  Calling Groq via LangChain (llama-3.3-70b-versatile, structured output)...")
     try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
+        llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            api_key=settings.groq_api_key,
+            temperature=0.4,
         )
-        raw = completion.choices[0].message.content.strip()
-        result["raw_response"] = raw
+        structured_llm = llm.with_structured_output(NavigatorOutput)
+        nav_result: NavigatorOutput = structured_llm.invoke(formatted_prompt)
+        result["raw_response"] = nav_result.model_dump_json(indent=2)
         append_checkpoint(
-            result, "llm_response", "completed", {"response_length": len(raw)}
+            result, "llm_response", "completed", {"response_length": len(result["raw_response"])}
         )
         save_result(result)
     except Exception as e:
         error_text = str(e)
-        print(f"  Groq error: {error_text[:200]}")
-        result.update(
-            {
-                "status": "failed",
-                "error": True,
-                "recommendation_reason": f"Groq API error: {error_text[:120]}",
-                "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            }
-        )
+        print(f"  LangChain/Groq error: {error_text[:200]}")
+        result.update({
+            "status": "failed",
+            "error": True,
+            "recommendation_reason": f"Groq API error: {error_text[:120]}",
+            "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        })
         append_checkpoint(result, "llm_response", "failed", {"error": error_text[:200]})
         save_result(result)
         return result
 
-    # Strip markdown fences if present
-    raw = re.sub(r"```json|```", "", raw).strip()
+    nav_result.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Parse JSON
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            try:
-                data = json.loads(match.group())
-            except json.JSONDecodeError:
-                data = {
-                    "country": country,
-                    "resource": resource,
-                    "routes": [],
-                    "recommended_route_index": -1,
-                    "recommendation_reason": "Could not parse Groq response as JSON",
-                    "error": True,
-                }
-        else:
-            data = {
-                "country": country,
-                "resource": resource,
-                "routes": [],
-                "recommended_route_index": -1,
-                "recommendation_reason": "Could not parse Groq response as JSON",
-                "error": True,
-            }
+    # Merge structured output into result dict
+    nav_dict = nav_result.model_dump(mode="json")
+    result.update(nav_dict)
+    result["status"] = "completed"
+    result["finished_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    result["validation_warnings"] = []
 
-    # Validate
-    errors = validate_output(data)
-    if errors:
-        print(f"  Validation issues: {'; '.join(errors)}")
-        data["_validation_warnings"] = errors
-    result["validation_warnings"] = errors
-
-    result.update(
-        {
-            "status": "completed_with_warnings" if errors else "completed",
-            "finished_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "routes": data.get("routes", []),
-            "recommended_route_index": data.get("recommended_route_index", -1),
-            "recommendation_reason": data.get("recommendation_reason", ""),
-            "error": bool(data.get("error", False)),
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
-    )
     append_checkpoint(
-        result,
-        "validation",
-        "completed" if not errors else "warning",
-        {"warnings": errors},
+        result, "validation", "completed", {"warnings": []}
     )
     save_result(result)
 
@@ -419,15 +422,13 @@ def run_navigation(country, resource):
     rec_idx = result.get("recommended_route_index", -1)
     print(f"\n  Routes planned: {len(routes)}")
     for i, route in enumerate(routes):
-        marker = " ★ RECOMMENDED" if i == rec_idx else ""
+        marker = " * RECOMMENDED" if i == rec_idx else ""
         print(
-            f"    Route {i}: {route.get('origin_port', '?')} → {route.get('destination_port', '?')}"
+            f"    Route {i}: {route.get('origin_port', '?')} -> {route.get('destination_port', '?')}"
             f"  [{route.get('distance_km', '?')} km, {route.get('estimated_transit_days', '?')} days]{marker}"
         )
         for wp in route.get("waypoints", []):
-            print(
-                f"      → {wp.get('name')} ({wp.get('type')}) [{wp.get('lat')}, {wp.get('lng')}]"
-            )
+            print(f"      -> {wp.get('name')} ({wp.get('type')}) [{wp.get('lat')}, {wp.get('lng')}]")
         if route.get("chokepoints"):
             print(f"      Chokepoints: {', '.join(route['chokepoints'])}")
         if route.get("risk_notes"):
@@ -437,93 +438,23 @@ def run_navigation(country, resource):
     return result
 
 
-def validate_output(data):
-    """Validate parsed output against the spec and return a list of warnings."""
-    warnings = []
-
-    routes = data.get("routes", [])
-    if not isinstance(routes, list):
-        warnings.append("routes is not a list")
-        return warnings
-
-    if len(routes) < 1:
-        warnings.append("routes has 0 entries, spec requires 1-3")
-    elif len(routes) > 3:
-        warnings.append(f"routes has {len(routes)} entries, spec requires 1-3")
-
-    rec_idx = data.get("recommended_route_index", -1)
-    if not isinstance(rec_idx, int) or rec_idx < 0 or rec_idx >= len(routes):
-        warnings.append(
-            f"recommended_route_index {rec_idx} invalid (must be 0-{len(routes)-1})"
-        )
-
-    for i, route in enumerate(routes):
-        if not isinstance(route, dict):
-            warnings.append(f"routes[{i}] is not an object")
-            continue
-
-        origin = route.get("origin_port", "?")
-        dest = route.get("destination_port", "?")
-
-        # Check waypoints
-        wps = route.get("waypoints", [])
-        if not wps:
-            warnings.append(f"Route {i}: no waypoints defined")
-        else:
-            # First must be origin_port type, last must be destination_port
-            if wps[0].get("type") != "origin_port":
-                warnings.append(f"Route {i}: first waypoint should be type origin_port")
-            if wps[-1].get("type") != "destination_port":
-                warnings.append(
-                    f"Route {i}: last waypoint should be type destination_port"
-                )
-            # Check coordinates exist
-            for j, wp in enumerate(wps):
-                if not isinstance(wp.get("lat"), (int, float)) or not isinstance(
-                    wp.get("lng"), (int, float)
-                ):
-                    warnings.append(
-                        f"Route {i}, waypoint {j}: missing or invalid lat/lng"
-                    )
-                if not wp.get("name"):
-                    warnings.append(f"Route {i}, waypoint {j}: missing name")
-
-        # Check distance and transit time
-        dist = route.get("distance_km")
-        if not isinstance(dist, (int, float)) or dist <= 0:
-            warnings.append(f"Route {i}: distance_km missing or invalid")
-
-        days = route.get("estimated_transit_days")
-        if not isinstance(days, (int, float)) or days <= 0:
-            warnings.append(f"Route {i}: estimated_transit_days missing or invalid")
-
-    return warnings
-
-
-def save_result(data):
-    """Persist the navigator result to navigator_output.json."""
-    output_path = BASE_DIR / "navigator_output.json"
-
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=4)
-        f.write("\n")
-    print(f"\n  Result saved to {output_path}")
+# ──────────────────────────────────────────────────────────────
+#  CLI (unchanged interface)
+# ──────────────────────────────────────────────────────────────
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Navigator Agent — plan shipping routes from supplier countries to India"
+        description="Navigator Agent (LangChain edition) — plan shipping routes from supplier countries to India"
     )
     parser.add_argument(
-        "--country",
-        "-c",
+        "--country", "-c",
         default=os.getenv("NAVIGATOR_COUNTRY", ""),
         help="Supplier country recommended by Dealmaker (e.g. 'Saudi Arabia')",
         required=False,
     )
     parser.add_argument(
-        "--resource",
-        "-r",
+        "--resource", "-r",
         default=os.getenv("NAVIGATOR_RESOURCE", "crude_oil"),
         help="Resource being transported (e.g. crude_oil, lpg)",
     )

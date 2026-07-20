@@ -1,3 +1,4 @@
 .env
 dealmaker_output.json
 .venv
+__pycache__

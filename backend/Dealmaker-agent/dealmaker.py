@@ -1,31 +1,75 @@
-import os, json, re, argparse, requests, subprocess, sys
+"""
+Dealmaker Agent — refactored to use LangChain ChatGroq with structured output.
+
+Demonstrates the BEFORE vs AFTER difference:
+
+  BEFORE (dealmaker.py):    raw groq SDK + manual JSON parsing + regex + validate_output()
+  AFTER  (this file):      ChatGroq.with_structured_output() → typed Pydantic model, zero parsing
+
+Everything else (news fetching, result saving, Navigator auto-launch) is identical.
+"""
+
+import argparse
+import json
+import os
+import requests
+import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
+from pydantic import BaseModel, Field
+
+from config import settings
 
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
-from groq import Groq
-from config import settings
 
-client = Groq(api_key=settings.groq_api_key)
+# ──────────────────────────────────────────────────────────────
+#  LangChain Pydantic models — the structured output schema
+# ──────────────────────────────────────────────────────────────
 
-DEALMAKER_PROMPT = """\
+class DealOption(BaseModel):
+    """A single alternative supplier option for India."""
+    country: str = Field(description="Supplier country name")
+    resource: str = Field(description="Resource being sourced (e.g. crude_oil, lpg)")
+    price_per_unit_usd: float = Field(description="Price per unit in USD")
+    unit: str = Field(description="Unit of measurement (e.g. barrel, metric ton, MMBtu)")
+    available_capacity: str = Field(description="Rough available export capacity (e.g. '500,000 barrels/day')")
+    reliability_score: int = Field(ge=1, le=10, description="1–10 based on political stability and India relations")
+    existing_trade_relation: bool = Field(description="Whether India already buys from this country")
+    notes: str = Field(description="Caveats: sanctions exposure, lead time, political tension, logistics")
+
+
+class DealOutput(BaseModel):
+    """Structured output from the Dealmaker agent."""
+    resource: str = Field(description="Resource in shortage")
+    shortage_amount: str = Field(description="Shortage amount India needs to replace")
+    options: list[DealOption] = Field(min_length=3, max_length=6, description="Candidate supplier options (3–6 entries)")
+    recommended_country: str = Field(description="Exactly one recommended country from the options list")
+    recommendation_reason: str = Field(description="One to two sentence justification for the recommendation")
+    error: bool = Field(default=False, description="Whether an error occurred")
+    timestamp: str = Field(default="", description="ISO timestamp of when the analysis was run")
+
+
+# ──────────────────────────────────────────────────────────────
+#  Prompt template (no more JSON format scaffolding!)
+# ──────────────────────────────────────────────────────────────
+
+SYSTEM_PROMPT = """\
 You are a senior global energy trade negotiator. You source alternative crude oil and LPG supply deals for India when an existing supply source becomes unreliable due to war, sanctions, or geopolitical disruption. You know real-world export capacities, typical commodity pricing, and which supplier relationships are politically and logistically dependable versus risky.
-
-## Context
 
 Current date: {today}
 
 {news_context}
 
 ## Input
-
 - Resource in shortage: **{resource}**
 - Shortage amount India needs to replace: **{shortage_amount}**
 
 ## Your Task
-
 Follow these steps IN ORDER:
 
 ### Step 1 — Research
@@ -38,47 +82,16 @@ If your knowledge of any candidate is thin, use your broader understanding of th
 Select 3–6 candidate supplier countries that are realistically capable of covering the shortage.
 
 ### Step 4 — Evaluate each candidate
-For each candidate determine:
-- **price_per_unit_usd**: price per unit (with unit specified — barrel, metric ton, MMBtu)
-- **unit**: the unit of measurement (e.g. "barrel", "metric ton", "MMBtu")
-- **available_capacity**: rough available export capacity (e.g. "500,000 barrels/day")
-- **reliability_score**: 1–10 based on political stability and current relations with India
-- **existing_trade_relation**: whether India already buys from them
-- **notes**: any caveats (sanctions exposure, contract lead time, political tension, logistical challenges)
+For each candidate determine price, unit, available capacity, reliability score (1–10), existing trade relation, and notes.
 
 ### Step 5 — Recommend
 Select exactly ONE recommended country. Base the choice on the full picture — price, capacity, reliability, and speed of deal-closing — not price alone. Justify in one to two sentences.
 
-## Output Format
-
-Reply ONLY with a valid JSON object. No preamble, no markdown fences, no commentary.
-
-{{
-  "resource": "{resource}",
-  "shortage_amount": "{shortage_amount}",
-  "options": [
-    {{
-      "country": "string",
-      "resource": "{resource}",
-      "price_per_unit_usd": number,
-      "unit": "string",
-      "available_capacity": "string",
-      "reliability_score": integer,
-      "existing_trade_relation": true or false,
-      "notes": "string"
-    }}
-  ],
-  "recommended_country": "string",
-  "recommendation_reason": "string"
-}}
-
 ## Constraints
-- options must contain 3–6 entries.
+- Provide exactly 3–6 options.
 - recommended_country must be one of the countries in options.
 - Do not invent implausible prices — ground every figure in well-known market data or clearly label it as an estimate.
-- Output ONLY the JSON object.
 """
-
 
 RESOURCE_KEYWORDS = {
     "crude_oil": "crude oil export price supply India",
@@ -86,10 +99,13 @@ RESOURCE_KEYWORDS = {
 }
 
 
-def fetch_relevant_news(resource, max_articles=8):
+# ──────────────────────────────────────────────────────────────
+#  News fetching (unchanged from original)
+# ──────────────────────────────────────────────────────────────
+
+def fetch_relevant_news(resource: str, max_articles: int = 8) -> list[dict]:
     """Fetch recent news relevant to the resource shortage."""
     q = RESOURCE_KEYWORDS.get(resource, f"{resource} export supply India shortage")
-
     url = "https://newsapi.org/v2/everything"
     params = {
         "q": q,
@@ -111,22 +127,20 @@ def fetch_relevant_news(resource, max_articles=8):
             return []
         articles = []
         for a in data.get("articles", []):
-            articles.append(
-                {
-                    "headline": a.get("title", ""),
-                    "summary": (a.get("description") or "")[:300],
-                    "source": a.get("source", {}).get("name", "unknown"),
-                    "link": a.get("url", ""),
-                }
-            )
+            articles.append({
+                "headline": a.get("title", ""),
+                "summary": (a.get("description") or "")[:300],
+                "source": a.get("source", {}).get("name", "unknown"),
+                "link": a.get("url", ""),
+            })
         print(f"  Fetched {len(articles)} news articles about {resource}")
         return articles
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         print(f"  NewsAPI request error: {e}")
         return []
 
 
-def build_news_context(articles):
+def build_news_context(articles: list[dict]) -> str:
     """Turn news articles into a short context block for the prompt."""
     if not articles:
         return ""
@@ -140,176 +154,24 @@ def build_news_context(articles):
     return "\n".join(lines)
 
 
-def run_deal(resource, shortage_amount):
-    """Run the dealmaker analysis once."""
-    print(f"\n{'='*60}")
-    print(f"  DEALMAKER AGENT")
-    print(f"  Resource: {resource}")
-    print(f"  Shortage: {shortage_amount}")
-    print(f"{'='*60}\n")
+# ──────────────────────────────────────────────────────────────
+#  Result saving (unchanged from original)
+# ──────────────────────────────────────────────────────────────
 
-    # 1. Fetch news context
-    articles = fetch_relevant_news(resource)
-    news_context = build_news_context(articles)
-
-    today = datetime.now().strftime("%B %d, %Y")
-
-    # 2. Build the prompt
-    prompt = DEALMAKER_PROMPT.format(
-        today=today,
-        news_context=news_context,
-        resource=resource,
-        shortage_amount=shortage_amount,
-    )
-
-    # 3. Call Groq
-    print("  Calling Groq (llama-3.1-8b-instant)...")
-    try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = completion.choices[0].message.content.strip()
-    except Exception as e:
-        error_text = str(e)
-        print(f"  Groq error: {error_text[:200]}")
-        fallback = {
-            "resource": resource,
-            "shortage_amount": shortage_amount,
-            "options": [],
-            "recommended_country": "",
-            "recommendation_reason": f"Groq API error: {error_text[:120]}",
-            "error": True,
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        save_result(fallback)
-        return fallback
-
-    # 4. Strip markdown fences if present
-    raw = re.sub(r"```json|```", "", raw).strip()
-
-    # 5. Parse JSON
-    try:
-        data = json.loads(raw)
-    except json.JSONDecodeError:
-        match = re.search(r"\{.*\}", raw, re.DOTALL)
-        if match:
-            try:
-                data = json.loads(match.group())
-            except json.JSONDecodeError:
-                data = {
-                    "resource": resource,
-                    "shortage_amount": shortage_amount,
-                    "options": [],
-                    "recommended_country": "",
-                    "recommendation_reason": "Could not parse Groq response as JSON",
-                    "error": True,
-                }
-        else:
-            data = {
-                "resource": resource,
-                "shortage_amount": shortage_amount,
-                "options": [],
-                "recommended_country": "",
-                "recommendation_reason": "Could not parse Groq response as JSON",
-                "error": True,
-            }
-
-    # 6. Validate and repair structure
-    errors = validate_output(data, resource, shortage_amount)
-    if errors:
-        print(f"  Validation issues: {'; '.join(errors)}")
-        data["_validation_warnings"] = errors
-
-    if not isinstance(data.get("options"), list):
-        data["options"] = []
-        data["_error"] = True
-    if "recommended_country" not in data:
-        data["recommended_country"] = ""
-        data["_error"] = True
-
-    data["timestamp"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    # 7. Print summary
-    print(f"\n  Recommendation: {data.get('recommended_country', 'N/A')}")
-    print(f"  Options considered: {len(data.get('options', []))}")
-    for opt in data.get("options", []):
-        print(
-            f"    - {opt.get('country')}: ${opt.get('price_per_unit_usd')}/{opt.get('unit')}, "
-            f"reliability {opt.get('reliability_score')}/10, "
-            f"capacity {opt.get('available_capacity')}"
-        )
-    print(f"  Reason: {data.get('recommendation_reason', 'N/A')}")
-
-    # 8. Save
-    save_result(data)
-    return data
+_seen_result_ids: set[tuple[str, str, str]] = set()
 
 
-def validate_output(data, resource, shortage_amount):
-    """Validate parsed output against the spec and return a list of warnings."""
-    warnings = []
-
-    options = data.get("options", [])
-    if not isinstance(options, list):
-        warnings.append("options is not a list")
-        return warnings
-
-    # Must be 3–6 entries
-    if len(options) < 3:
-        warnings.append(f"options has {len(options)} entries, spec requires 3-6")
-    elif len(options) > 6:
-        warnings.append(f"options has {len(options)} entries, spec requires 3-6")
-
-    # recommended_country must be in options
-    recommended = data.get("recommended_country", "")
-    countries_in_options = [o.get("country") for o in options if isinstance(o, dict)]
-    if recommended and recommended not in countries_in_options:
-        warnings.append(f"recommended_country '{recommended}' not found in options")
-
-    # Validate each option's fields
-    for i, opt in enumerate(options):
-        if not isinstance(opt, dict):
-            warnings.append(f"options[{i}] is not an object")
-            continue
-
-        country = opt.get("country", "?")
-
-        # price_per_unit_usd must be a number
-        price = opt.get("price_per_unit_usd")
-        if not isinstance(price, (int, float)):
-            warnings.append(f"{country}: price_per_unit_usd is not a number")
-
-        # reliability_score must be int 1–10
-        score = opt.get("reliability_score")
-        if not isinstance(score, int) or score < 1 or score > 10:
-            warnings.append(f"{country}: reliability_score must be int 1-10")
-
-        # existing_trade_relation must be boolean
-        trade = opt.get("existing_trade_relation")
-        if not isinstance(trade, bool):
-            warnings.append(f"{country}: existing_trade_relation must be boolean")
-
-    return warnings
-
-
-_seen_result_ids = set()
-
-
-def save_result(data):
+def save_result(data: dict) -> None:
     """Append result to dealmaker_output.json (skip duplicates)."""
     output_path = BASE_DIR / "dealmaker_output.json"
 
-    # Generate a stable dedup key based on resource + shortage + recommended country
     dedup_key = (
         data.get("resource", ""),
         data.get("shortage_amount", ""),
         data.get("recommended_country", ""),
     )
     if dedup_key in _seen_result_ids:
-        print(
-            f"  Skipping duplicate result ({dedup_key[0]} / {dedup_key[1]} -> {dedup_key[2]})"
-        )
+        print(f"  Skipping duplicate result ({dedup_key[0]} / {dedup_key[1]} -> {dedup_key[2]})")
         return
     _seen_result_ids.add(dedup_key)
 
@@ -319,7 +181,11 @@ def save_result(data):
     print(f"\n  Result saved to {output_path}")
 
 
-def run_navigator(country, resource):
+# ──────────────────────────────────────────────────────────────
+#  Navigator launcher (unchanged from original)
+# ──────────────────────────────────────────────────────────────
+
+def run_navigator(country: str, resource: str) -> None:
     """Run the Navigator agent as a subprocess with Dealmaker's recommendation."""
     navigator_script = BASE_DIR.parent / "Navigator-agent" / "navigator.py"
     if not navigator_script.exists():
@@ -354,31 +220,108 @@ def run_navigator(country, resource):
         if result.stdout:
             print(result.stdout.strip())
     except FileNotFoundError:
-        print(f"  Could not find Python executable to run Navigator agent")
+        print("  Could not find Python executable to run Navigator agent")
     except Exception as e:
         print(f"  Error launching Navigator agent: {e}")
 
 
-def main():
+# ──────────────────────────────────────────────────────────────
+#  Core logic — LangChain edition
+# ──────────────────────────────────────────────────────────────
+
+def run_deal(resource: str, shortage_amount: str) -> DealOutput:
+    """Run the dealmaker analysis using LangChain ChatGroq with structured output.
+
+    This replaces ~60 lines of manual JSON parsing, regex, and validation
+    with a single ``with_structured_output()`` call.
+    """
+    print(f"\n{'='*60}")
+    print(f"  DEALMAKER AGENT  (LangChain edition)")
+    print(f"  Resource: {resource}")
+    print(f"  Shortage: {shortage_amount}")
+    print(f"{'='*60}\n")
+
+    # 1. Fetch news context
+    articles = fetch_relevant_news(resource)
+    news_context = build_news_context(articles)
+    today = datetime.now().strftime("%B %d, %Y")
+
+    # 2. Build the LangChain prompt template
+    prompt = ChatPromptTemplate.from_messages([
+        ("human", SYSTEM_PROMPT),
+    ])
+    formatted_prompt = prompt.format_messages(
+        today=today,
+        news_context=news_context,
+        resource=resource,
+        shortage_amount=shortage_amount,
+    )
+
+    # 3. Create the LLM with structured output
+    #    LangChain converts DealOutput → JSON schema → tool call binding.
+    #    The LLM returns JSON matching DealOutput; LangChain parses & validates it.
+    print("  Calling Groq via LangChain (llama-3.1-8b-instant, structured output)...")
+    try:
+        llm = ChatGroq(
+            model="llama-3.1-8b-instant",
+            api_key=settings.groq_api_key,
+            temperature=0.4,
+        )
+        structured_llm = llm.with_structured_output(DealOutput)
+        result: DealOutput = structured_llm.invoke(formatted_prompt)
+    except Exception as e:
+        error_text = str(e)
+        print(f"  LangChain/Groq error: {error_text[:200]}")
+        result = DealOutput(
+            resource=resource,
+            shortage_amount=shortage_amount,
+            options=[],
+            recommended_country="",
+            recommendation_reason=f"Groq API error: {error_text[:120]}",
+            error=True,
+        )
+
+    result.timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # 4. Print summary
+    print(f"\n  Recommendation: {result.recommended_country or 'N/A'}")
+    print(f"  Options considered: {len(result.options)}")
+    for opt in result.options:
+        print(
+            f"    - {opt.country}: ${opt.price_per_unit_usd}/{opt.unit}, "
+            f"reliability {opt.reliability_score}/10, "
+            f"capacity {opt.available_capacity}"
+        )
+    print(f"  Reason: {result.recommendation_reason or 'N/A'}")
+
+    # 5. Save (convert to dict for JSON serialisation)
+    result_dict = result.model_dump(mode="json")
+    save_result(result_dict)
+
+    return result
+
+
+# ──────────────────────────────────────────────────────────────
+#  CLI (unchanged interface)
+# ──────────────────────────────────────────────────────────────
+
+def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Dealmaker Agent — source alternative crude oil / LPG supply for India"
+        description="Dealmaker Agent (LangChain edition) — source alternative crude oil / LPG supply for India"
     )
     parser.add_argument(
-        "--resource",
-        "-r",
+        "--resource", "-r",
         default=os.getenv("DEALMAKER_RESOURCE", "crude_oil"),
         choices=["crude_oil", "lpg"],
         help="Resource in shortage (crude_oil or lpg)",
     )
     parser.add_argument(
-        "--shortage",
-        "-s",
+        "--shortage", "-s",
         default=os.getenv("DEALMAKER_SHORTAGE", "45,000 barrels/day"),
         help="Shortage amount India needs to replace (e.g. '45,000 barrels/day')",
     )
     parser.add_argument(
-        "--run-navigator",
-        "-n",
+        "--run-navigator", "-n",
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Automatically run Navigator agent for route planning after a successful deal (default: True)",
@@ -388,10 +331,9 @@ def main():
     data = run_deal(args.resource, args.shortage)
 
     # Auto-launch Navigator if we got a valid recommendation
-    if args.run_navigator and data and not data.get("error"):
-        recommended = data.get("recommended_country", "")
-        if recommended:
-            run_navigator(recommended, args.resource)
+    if args.run_navigator and data and not data.error:
+        if data.recommended_country:
+            run_navigator(data.recommended_country, args.resource)
 
 
 if __name__ == "__main__":

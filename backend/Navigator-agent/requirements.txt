@@ -1,4 +1,6 @@
 groq
+langchain-groq
+langchain-core
 pydantic
 pydantic-settings
 requests
