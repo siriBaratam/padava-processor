@@ -47,7 +47,7 @@ class DealOutput(BaseModel):
     """Structured output from the Dealmaker agent."""
     resource: str = Field(description="Resource in shortage")
     shortage_amount: str = Field(description="Shortage amount India needs to replace")
-    options: list[DealOption] = Field(min_length=3, max_length=6, description="Candidate supplier options (3–6 entries)")
+    options: list[DealOption] = Field(default_factory=list, max_length=6, description="Candidate supplier options (3–6 entries; empty on error)")
     recommended_country: str = Field(description="Exactly one recommended country from the options list")
     recommendation_reason: str = Field(description="One to two sentence justification for the recommendation")
     error: bool = Field(default=False, description="Whether an error occurred")
