@@ -1,6 +1,6 @@
 """Allocator Agent package."""
 
-from app.allocator.schemas import (
+from schemas import (
     AllocationStatus,
     AllocatorInput,
     AllocatorOutput,

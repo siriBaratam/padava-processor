@@ -22,14 +22,14 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.allocator.schemas import AllocatorInput
-from app.allocator.services import (
+from schemas import AllocatorInput
+from services import (
     AllocatorStore,
     execute_allocation,
     load_state_sector_demands,
     load_strategist_output,
 )
-from app.allocator.state import AllocatorState
+from state import AllocatorState
 
 
 def _errors(state: AllocatorState) -> list[str]:

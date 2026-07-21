@@ -3,6 +3,8 @@ from pathlib import Path
 
 from scout.scout import run_scout
 from accountant import run_accountant
+from strategist import run_strategist
+from allocator import run_allocator
 
 # ``dealmaker.py`` lives inside the backend/dealmaker directory.  Put that
 # directory ahead of the project root so this imports the module, rather than
@@ -40,24 +42,24 @@ def main():
     print("=" * 60)
     print("Running Strategist Agent...")
     print("=" * 60)
-    # strategist_output = run_strategist(
-    # scout_output,
-    # accountant_output
-    # )
-    # print(strategist_output)
-    # print("\n")
-    # print("=" * 60)
-    # print("Running Allocator Agent...")
-    # print("=" * 60)
+    strategist_output = run_strategist(
+        scout_output,
+        accountant_output
+    )
+    print(strategist_output)
+    print("\n")
+    print("=" * 60)
+    print("Running Allocator Agent...")
+    print("=" * 60)
 
-    # allocator_output = run_allocator(
-    #     scout_output,
-    #     accountant_output,
-    #     strategist_output
-    # )
+    allocator_output = run_allocator(
+        scout_output,
+        accountant_output,
+        strategist_output
+    )
 
-    # print(allocator_output)
-    # print("\n")
+    print(allocator_output)
+    print("\n")
     # # navigator_output = run_navigator(
     # #     allocator_output
     # # )
@@ -78,3 +80,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

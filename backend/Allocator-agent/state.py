@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from app.allocator.schemas import AllocatorInput, AllocatorOutput
-from app.strategist.schemas import StrategistOutput
+from schemas import AllocatorInput, AllocatorOutput
+from strategist_contract import StrategistOutput
 
 
 class AllocatorState(TypedDict, total=False):

@@ -14,15 +14,15 @@ Responsibilities
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Any, Protocol
 
-from app.allocator.calculations import generate_distribution_plan
-from app.allocator.schemas import (
+from calculations import generate_distribution_plan
+from schemas import (
     AllocatorInput,
     AllocatorOutput,
     StateSectorDemand,
 )
-from app.strategist.schemas import StrategistOutput
+from strategist_contract import StrategistOutput
 
 
 class AllocatorStore(Protocol):
