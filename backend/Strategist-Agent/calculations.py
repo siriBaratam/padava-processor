@@ -5,7 +5,7 @@ No Redis, LangGraph, or LLM logic belongs in this module.
 
 from __future__ import annotations
 
-from app.strategist.schemas import CoverageStatus, ReserveState, SPRReleaseMetrics, StrategistInput
+from schemas import CoverageStatus, ReserveState, SPRReleaseMetrics, StrategistInput
 
 
 def round_barrels(value: float) -> float:

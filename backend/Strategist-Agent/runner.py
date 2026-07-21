@@ -7,10 +7,10 @@ import sys
 from pathlib import Path
 from typing import Any, TextIO
 
-from app.strategist.config import get_settings
-from app.strategist.graph import build_strategist_graph
-from app.strategist.redis_store import StrategistRedisStore
-from app.strategist.schemas import StrategistOutput
+from config import get_settings
+from graph import build_strategist_graph
+from redis_store import StrategistRedisStore
+from schemas import StrategistOutput
 
 
 SAMPLE_SCENARIO: dict[str, Any] = {
@@ -25,10 +25,43 @@ SAMPLE_SCENARIO: dict[str, Any] = {
 }
 
 
-def run_strategist(payload: dict[str, Any]) -> StrategistOutput:
-    settings = get_settings()
-    store = StrategistRedisStore(settings)
-    graph = build_strategist_graph(store)
+class DemoStrategistStore:
+    """In-memory store used only for sample/demo Strategist runs."""
+
+    def __init__(self) -> None:
+        self.saved: dict[str, Any] = {}
+        self.events: list[dict[str, Any]] = []
+
+    def load_current_reserve_state(self, scenario_id: str) -> dict[str, Any] | None:
+        return None
+
+    def save_state(self, scenario_id: str, state: dict[str, Any]) -> str:
+        key = f"spr:scenario:{scenario_id}:strategist_state"
+        self.saved[key] = state
+        return key
+
+    def save_output(self, output: StrategistOutput) -> str:
+        key = f"spr:scenario:{output.scenario_id}:strategist_output"
+        self.saved[key] = output.model_dump(mode="json")
+        return key
+
+    def publish_completed(self, scenario_id: str, output_key: str) -> dict[str, Any]:
+        event = {
+            "event": "strategist.completed",
+            "scenario_id": scenario_id,
+            "next_agent": "allocator",
+            "redis_key": output_key,
+        }
+        self.events.append(event)
+        return event
+
+
+def run_strategist(
+    payload: dict[str, Any],
+    store: Any | None = None,
+) -> StrategistOutput:
+    effective_store = store or StrategistRedisStore(get_settings())
+    graph = build_strategist_graph(effective_store)
 
     final_state = graph.invoke({"raw_input": payload, "errors": []})
     errors = final_state.get("errors", [])
@@ -41,7 +74,7 @@ def run_strategist(payload: dict[str, Any]) -> StrategistOutput:
 def _load_payload_from_cli(
     argv: list[str] | None = None,
     stdin: TextIO | None = None,
-) -> dict[str, Any]:
+) -> tuple[dict[str, Any], bool]:
     """Load input from --sample, file, stdin, or default sample."""
 
     args = sys.argv[1:] if argv is None else argv
@@ -50,22 +83,22 @@ def _load_payload_from_cli(
     # Handle sample mode
     if "--sample" in args:
         print("Loading sample scenario...")
-        return dict(SAMPLE_SCENARIO)
+        return dict(SAMPLE_SCENARIO), True
 
     # Handle JSON file input
     if args:
         print("Reading input from file...")
-        return json.loads(Path(args[0]).read_text(encoding="utf-8"))
+        return json.loads(Path(args[0]).read_text(encoding="utf-8")), False
 
     # Handle stdin
     stdin_payload = _read_stdin_if_available(input_stream)
     if stdin_payload is not None:
         print("Reading input from stdin...")
-        return json.loads(stdin_payload)
+        return json.loads(stdin_payload), False
 
     # Default to sample
     print("Loading sample scenario...")
-    return dict(SAMPLE_SCENARIO)
+    return dict(SAMPLE_SCENARIO), True
 
 def _read_stdin_if_available(stdin: TextIO) -> str | None:
     try:
@@ -79,8 +112,9 @@ def _read_stdin_if_available(stdin: TextIO) -> str | None:
 
 
 def main() -> None:
-    payload = _load_payload_from_cli()
-    output = run_strategist(payload)
+    payload, using_sample = _load_payload_from_cli()
+    store = DemoStrategistStore() if using_sample else None
+    output = run_strategist(payload, store=store)
     print("Strategist execution completed.")
     print(output.model_dump_json(indent=2))
 

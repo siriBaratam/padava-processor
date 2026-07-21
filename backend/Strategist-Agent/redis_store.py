@@ -8,9 +8,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.shared.redis_client import get_redis_client
-from app.strategist.config import StrategistSettings
-from app.strategist.schemas import StrategistOutput
+from config import StrategistSettings
+from redis_client import get_redis_client
+from schemas import StrategistOutput
 
 
 def to_jsonable(value: Any) -> Any:

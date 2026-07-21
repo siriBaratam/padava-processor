@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, TypedDict
 
-from app.strategist.schemas import CoverageStatus, ReserveState, SPRReleaseMetrics, StrategistInput, StrategistOutput
+from schemas import CoverageStatus, ReserveState, SPRReleaseMetrics, StrategistInput, StrategistOutput
 
 
 class StrategistState(TypedDict, total=False):

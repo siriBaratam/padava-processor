@@ -131,27 +131,31 @@ class CorridorAnalyzer:
                 corridor["insurance_premium_factor"],
 
             "strategic_score":
-                corridor["strategic_importance_score"],
+                corridor.get("strategic_importance_score", 0),
 
             "major_export_regions":
-                corridor["major_exporting_regions"],
+                corridor.get("major_exporting_regions", "N/A"),
 
             "affected_ports":
-                corridor["affected_indian_ports"],
+                corridor.get("affected_indian_ports", "N/A"),
 
             "affected_refineries":
-                corridor["affected_refineries"],
+                corridor.get("affected_refineries", "N/A"),
 
             "recommended_action":
-                corridor["recommended_action"],
+                corridor.get("recommended_action", "Continue monitoring"),
+
             "reroute_fuel_cost_percent":
-            corridor["reroute_fuel_cost_percent"],
+                corridor.get("reroute_fuel_cost_percent", 0),
+
             "reroute_co2_percent":
-            corridor["reroute_co2_percent"],
+                corridor.get("reroute_co2_percent", 0),
+
             "expected_recovery_days":
-            corridor["expected_recovery_days"],
+                corridor.get("expected_recovery_days", 0),
+
             "block_probability":
-            corridor["block_probability"],
+                corridor.get("block_probability", 0),
 
         }
 

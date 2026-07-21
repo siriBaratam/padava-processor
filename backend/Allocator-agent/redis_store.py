@@ -18,9 +18,9 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.allocator.config import AllocatorSettings
-from app.allocator.schemas import AllocatorOutput
-from app.shared.redis_client import get_redis_client
+from config import AllocatorSettings
+from redis_client import get_redis_client
+from schemas import AllocatorOutput
 
 
 # Default key template for the V2 state-sector demand dataset.

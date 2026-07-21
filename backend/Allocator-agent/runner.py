@@ -18,10 +18,10 @@ import sys
 from pathlib import Path
 from typing import Any, TextIO
 
-from app.allocator.config import get_settings
-from app.allocator.graph import build_allocator_graph
-from app.allocator.redis_store import AllocatorRedisStore
-from app.allocator.schemas import AllocatorOutput
+from config import get_settings
+from graph import build_allocator_graph
+from redis_store import AllocatorRedisStore
+from schemas import AllocatorOutput
 
 
 SAMPLE_SCENARIO: dict[str, Any] = {

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-from app.strategist.calculations import build_strategy_reasoning
-from app.strategist.schemas import (
+from calculations import build_strategy_reasoning
+from schemas import (
     CoverageStatus,
     ReserveState,
     SPRReleaseMetrics,

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 from decimal import Decimal, ROUND_HALF_UP
 
-from app.allocator.schemas import (
+from schemas import (
     AllocationStatus,
     AllocatorOutput,
     DeliveryPrioritySchedule,
@@ -35,7 +35,7 @@ from app.allocator.schemas import (
     StateAllocation,
     StateSectorDemand,
 )
-from app.strategist.schemas import StrategistOutput
+from strategist_contract import StrategistOutput
 
 
 # ──────────────────────────────────────────────

@@ -1,6 +1,6 @@
 """Strategist Agent package."""
 
-from app.strategist.schemas import CoverageStatus, RiskLevel, StrategistInput, StrategistOutput
+from schemas import CoverageStatus, RiskLevel, StrategistInput, StrategistOutput
 
 __all__ = [
     "CoverageStatus",
