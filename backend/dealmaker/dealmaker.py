@@ -185,13 +185,17 @@ def save_result(data: dict) -> None:
 #  Navigator launcher (unchanged from original)
 # ──────────────────────────────────────────────────────────────
 
-def run_navigator(country: str, resource: str) -> None:
-    """Run the Navigator agent as a subprocess with Dealmaker's recommendation."""
+def run_navigator(country: str, resource: str) -> dict:
+    """Run Navigator and return its captured command output for the caller."""
     navigator_script = BASE_DIR.parent / "Navigator-agent" / "navigator.py"
     if not navigator_script.exists():
         print(f"\n  ⚠️  Navigator agent not found at {navigator_script}")
         print("  Skipping route planning.")
-        return
+        return {
+            "returncode": None,
+            "stdout": "",
+            "stderr": f"Navigator agent not found at {navigator_script}",
+        }
 
     dealmaker_output = BASE_DIR / "dealmaker_output.json"
 
@@ -219,10 +223,21 @@ def run_navigator(country: str, resource: str) -> None:
                 print(f"  stderr: {result.stderr.strip()[:500]}")
         if result.stdout:
             print(result.stdout.strip())
+        return {
+            "returncode": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+        }
     except FileNotFoundError:
         print("  Could not find Python executable to run Navigator agent")
+        return {
+            "returncode": None,
+            "stdout": "",
+            "stderr": "Could not find Python executable to run Navigator agent",
+        }
     except Exception as e:
         print(f"  Error launching Navigator agent: {e}")
+        return {"returncode": None, "stdout": "", "stderr": str(e)}
 
 
 # ──────────────────────────────────────────────────────────────
@@ -305,7 +320,7 @@ def run_deal(resource: str, shortage_amount: str) -> DealOutput:
 #  CLI (unchanged interface)
 # ──────────────────────────────────────────────────────────────
 
-def main() -> None:
+def run_dealmaker() -> dict:
     parser = argparse.ArgumentParser(
         description="Dealmaker Agent (LangChain edition) — source alternative crude oil / LPG supply for India"
     )
@@ -331,10 +346,16 @@ def main() -> None:
     data = run_deal(args.resource, args.shortage)
 
     # Auto-launch Navigator if we got a valid recommendation
+    navigator_output = None
     if args.run_navigator and data and not data.error:
         if data.recommended_country:
-            run_navigator(data.recommended_country, args.resource)
+            navigator_output = run_navigator(data.recommended_country, args.resource)
+
+    return {
+        "dealmaker": data.model_dump(mode="json"),
+        "navigator": navigator_output,
+    }
 
 
 if __name__ == "__main__":
-    main()
+    run_dealmaker()
