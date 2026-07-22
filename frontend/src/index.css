@@ -2,16 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  margin: 0;
+@layer base {
+  body {
+    background-color: #F2F4F3;
+    color: #10201E;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Global Keyboard Focus ring */
+  *:focus-visible {
+    outline: 2px solid #0E6E6A;
+    outline-offset: 2px;
+  }
 }
 
-/* Retain the root layout wrapper but keep it minimal */
-#root {
-  max-width: 1126px;
-  margin: 0 auto;
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F2F4F3;
+}
+::-webkit-scrollbar-thumb {
+  background: #DCE1DF;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0E6E6A;
+}
+
+/* Ops Console Hairline Card Utility */
+.glass-card {
+  background-color: #FAFBFA;
+  border: 1px solid #DCE1DF;
+  border-radius: 8px;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.glass-card:hover {
+  border-color: #0E6E6A;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 32, 30, 0.04);
+}
+
+.glass-card-no-hover {
+  background-color: #FAFBFA;
+  border: 1px solid #DCE1DF;
+  border-radius: 8px;
+}
+
+.tracking-tight-display {
+  letter-spacing: -2.0px;
+}
+
+.tracking-tight-title {
+  letter-spacing: -1.0px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
