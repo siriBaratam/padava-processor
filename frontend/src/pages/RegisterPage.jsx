@@ -142,7 +142,7 @@ export default function RegisterPage() {
       {/* ── Background ───────────────────────────────────── */}
       <div className="auth-bg">
         <img
-          src="/cargo-ship.jpg"
+          src="/flung-ship.jpg"
           alt="Cargo ships at sea"
           className="auth-bg-img"
           draggable="false"

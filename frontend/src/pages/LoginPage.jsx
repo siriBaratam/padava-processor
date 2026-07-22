@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {Title} from "../components/ui/Title.jsx"
 import {
   Shield, Eye, EyeOff, Lock, Mail, ArrowRight,
   Anchor, Waves, AlertCircle, CheckCircle2
@@ -87,7 +88,7 @@ export default function LoginPage() {
       {/* ── Background Image + overlays ─────────────────── */}
       <div className="auth-bg">
         <img
-          src="/cargo-ship.jpg"
+          src="/flung-ship.jpg"
           alt="Goods ships at sea"
           className="auth-bg-img"
           draggable="false"
