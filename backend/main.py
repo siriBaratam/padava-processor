@@ -38,28 +38,28 @@ def main():
 
     print(accountant_output)
 
-    print("\n")
-    print("=" * 60)
-    print("Running Strategist Agent...")
-    print("=" * 60)
-    strategist_output = run_strategist(
-        scout_output,
-        accountant_output
-    )
-    print(strategist_output)
-    print("\n")
-    print("=" * 60)
-    print("Running Allocator Agent...")
-    print("=" * 60)
+    # print("\n")
+    # print("=" * 60)
+    # print("Running Strategist Agent...")
+    # print("=" * 60)
+    # strategist_output = run_strategist(
+    #     scout_output,
+    #     accountant_output
+    # )
+    # print(strategist_output)
+    # print("\n")
+    # print("=" * 60)
+    # print("Running Allocator Agent...")
+    # print("=" * 60)
 
-    allocator_output = run_allocator(
-        scout_output,
-        accountant_output,
-        strategist_output
-    )
+    # allocator_output = run_allocator(
+    #     scout_output,
+    #     accountant_output,
+    #     strategist_output
+    # )
 
-    print(allocator_output)
-    print("\n")
+    # print(allocator_output)
+    # print("\n")
     # # navigator_output = run_navigator(
     # #     allocator_output
     # # )
