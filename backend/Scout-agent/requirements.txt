@@ -1,6 +1,0 @@
-google-generativeai
-requests
-python-dotenv
-scikit-learn 
-pandas 
-joblib

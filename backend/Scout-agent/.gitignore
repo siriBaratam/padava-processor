@@ -1,6 +1,0 @@
-.env
-create_dataset.py
-train_model.py
-training.py
-training_data.csv
-scout_output.json

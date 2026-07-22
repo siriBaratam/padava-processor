@@ -60,10 +60,10 @@ export default function ScoutPage() {
               >
                 <div className="flex items-center space-x-3 truncate">
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold flex-shrink-0 ${item.type === 'BAD' ? 'bg-[#F7E9E6] text-[#B23A2E]' : 'bg-[#E4EEE8] text-[#276A4E]'}`}>
-                    {item.riskScore}/10
+                    {item.RiskScore}/10
                   </span>
 
-                  <span className="font-sans font-semibold text-[#10201E] truncate">{item.headline}</span>
+                  <span className="font-sans font-semibold text-[#10201E] truncate">{item.Headline}</span>
                 </div>
 
                 <div className="flex items-center space-x-3 text-[11px] text-[#4B5A57] flex-shrink-0">
