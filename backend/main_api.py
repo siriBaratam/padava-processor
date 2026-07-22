@@ -313,7 +313,18 @@ def get_dealmaker() -> Any:
 @app.get("/api/navigator")
 def get_navigator() -> Any:
     """Return the cached output from the Navigator agent."""
-    return _get_agent_output("navigator")
+    data = _get_agent_output("navigator")
+    if data is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Navigator data is not available yet",
+        )
+    if isinstance(data, dict) and data.get("error"):
+        raise HTTPException(
+            status_code=500,
+            detail=data.get("detail", "Navigator process encountered an unknown error"),
+        )
+    return data
 
 
 # ── Optional: on-demand re-run ──────────────────────────────────────────

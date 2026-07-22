@@ -186,15 +186,21 @@ def save_result(data: dict) -> None:
 # ──────────────────────────────────────────────────────────────
 
 def run_navigator(country: str, resource: str) -> dict:
-    """Run Navigator and return its captured command output for the caller."""
+    """Run Navigator as a subprocess and return the parsed output from navigator_output.json.
+
+    The subprocess is invoked exactly as before.  After it completes, this function
+    reads ``navigator_output.json`` (written by navigator.py) and returns its
+    structured content rather than the raw subprocess result.
+    """
     navigator_script = BASE_DIR.parent / "Navigator-agent" / "navigator.py"
+    navigator_output_path = BASE_DIR.parent / "Navigator-agent" / "navigator_output.json"
+
     if not navigator_script.exists():
         print(f"\n  ⚠️  Navigator agent not found at {navigator_script}")
         print("  Skipping route planning.")
         return {
-            "returncode": None,
-            "stdout": "",
-            "stderr": f"Navigator agent not found at {navigator_script}",
+            "error": True,
+            "detail": f"Navigator agent not found at {navigator_script}",
         }
 
     dealmaker_output = BASE_DIR / "dealmaker_output.json"
@@ -217,27 +223,47 @@ def run_navigator(country: str, resource: str) -> dict:
             timeout=120,
             check=False,
         )
+        if result.stdout:
+            print(result.stdout.strip())
+
+        # ── Check the subprocess exit code ──────────────────────────────
         if result.returncode != 0:
             print(f"\n  Navigator agent exited with code {result.returncode}")
             if result.stderr:
                 print(f"  stderr: {result.stderr.strip()[:500]}")
-        if result.stdout:
-            print(result.stdout.strip())
-        return {
-            "returncode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
-        }
+            return {
+                "error": True,
+                "detail": f"Navigator process failed: {result.stderr.strip() or result.stdout.strip() or 'Unknown error'}",
+            }
+
+        # ── Read the output file written by navigator.py ───────────────
+        if not navigator_output_path.exists():
+            print(f"\n  ⚠️  Navigator completed but output file not found at {navigator_output_path}")
+            return {
+                "error": True,
+                "detail": "Navigator completed but output file was not found",
+            }
+
+        with open(navigator_output_path, "r", encoding="utf-8") as f:
+            navigator_data = json.load(f)
+
+        return navigator_data
+
     except FileNotFoundError:
         print("  Could not find Python executable to run Navigator agent")
         return {
-            "returncode": None,
-            "stdout": "",
-            "stderr": "Could not find Python executable to run Navigator agent",
+            "error": True,
+            "detail": "Could not find Python executable to run Navigator agent",
+        }
+    except json.JSONDecodeError as e:
+        print(f"  Navigator output file was invalid or corrupted: {e}")
+        return {
+            "error": True,
+            "detail": "Navigator output file was invalid or corrupted",
         }
     except Exception as e:
         print(f"  Error launching Navigator agent: {e}")
-        return {"returncode": None, "stdout": "", "stderr": str(e)}
+        return {"error": True, "detail": str(e)}
 
 
 # ──────────────────────────────────────────────────────────────
