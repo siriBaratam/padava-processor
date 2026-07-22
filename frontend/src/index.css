@@ -61,7 +61,7 @@
   min-height: 100vh;
   display: flex;
   overflow: hidden;
-  background: #060c12;
+  background: #F2F4F3;
 }
 
 /* ── Background ──────────────────────────────────────────── */
@@ -75,9 +75,10 @@
   height: 100%;
   object-fit: cover;
   object-position: center 40%;
-  filter: brightness(0.38) saturate(0.8);
+  filter: brightness(0.85) saturate(0.75);
+  opacity: 0.55;
   transform: scale(1.04);
-  transition: transform 8s ease;
+  transition: transform 8s ease, opacity 0.4s ease;
 }
 .auth-root:hover .auth-bg-img {
   transform: scale(1.00);
@@ -85,31 +86,21 @@
 .auth-bg-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 30%, rgba(4, 8, 14, 0.85) 100%);
+  /* Gentle edge fade — keeps image readable in the centre */
+  background: radial-gradient(ellipse at center, rgba(242, 244, 243, 0.1) 0%, rgba(242, 244, 243, 0.55) 100%);
 }
 .auth-bg-gradient {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     135deg,
-    rgba(14, 110, 106, 0.12) 0%,
-    transparent 50%,
-    rgba(245, 78, 0, 0.07) 100%
+    rgba(14, 110, 106, 0.06) 0%,
+    transparent 55%,
+    rgba(245, 78, 0, 0.04) 100%
   );
 }
-.auth-scanline {
-  position: absolute;
-  top: -100%;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(14, 110, 106, 0.4), transparent);
-  animation: scanline 6s linear infinite;
-}
-@keyframes scanline {
-  0%   { top: -2px; }
-  100% { top: 100%; }
-}
+/* scanline removed — not appropriate for light theme */
+.auth-scanline { display: none; }
 
 /* ── Particles ───────────────────────────────────────────── */
 .auth-particles {
@@ -121,17 +112,21 @@
 .auth-particle {
   position: absolute;
   border-radius: 50%;
-  background: rgba(14, 110, 106, 0.6);
+  /* Teal particles, subtle enough for a light background */
+  background: rgba(14, 110, 106, 0.25);
   animation: float-particle linear infinite;
 }
 @keyframes float-particle {
-  0%   { transform: translateY(0) scale(1); opacity: var(--op, 0.2); }
-  50%  { transform: translateY(-40px) scale(1.3); opacity: calc(var(--op, 0.2) * 1.5); }
-  100% { transform: translateY(0) scale(1); opacity: var(--op, 0.2); }
+  0%   { transform: translateY(0) scale(1); opacity: var(--op, 0.15); }
+  50%  { transform: translateY(-40px) scale(1.3); opacity: calc(var(--op, 0.15) * 1.6); }
+  100% { transform: translateY(0) scale(1); opacity: var(--op, 0.15); }
 }
 
 /* ============================================================
    LEFT BRAND PANEL
+   ============================================================ */
+/* ============================================================
+   LEFT BRAND PANEL — light theme matching Landing hero
    ============================================================ */
 .auth-brand-panel {
   position: relative;
@@ -141,6 +136,9 @@
   display: flex;
   align-items: center;
   padding: 3rem 2.5rem;
+  /* Subtle left-side teal tint mirrors Landing hero gradient */
+  background: linear-gradient(160deg, rgba(14, 110, 106, 0.07) 0%, transparent 70%);
+  border-right: 1px solid #DCE1DF;
 }
 
 @media (max-width: 900px) {
@@ -153,43 +151,44 @@
   gap: 1.5rem;
 }
 
+/* Logo icon — matches Landing's sovereign badge style */
 .auth-brand-logo {
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: rgba(245, 78, 0, 0.12);
-  border: 1px solid rgba(245, 78, 0, 0.3);
+  background: #E4EFEE;
+  border: 1px solid rgba(14, 110, 106, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
-  backdrop-filter: blur(12px);
 }
 
+/* Brand title — deep ink color matching Landing h1 */
 .auth-brand-title {
   font-size: 2.6rem;
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -2px;
-  color: #ffffff;
+  color: #10201E;
 }
 
+/* Brand sub-text — secondary color matching Landing <p> */
 .auth-brand-sub {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.5);
+  color: #4B5A57;
   line-height: 1.6;
   max-width: 280px;
 }
 
-/* Stats */
+/* Stats block — surface card style matching Dashboard metric cards */
 .auth-brand-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   padding: 1.25rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  backdrop-filter: blur(16px);
+  background: #FAFBFA;
+  border: 1px solid #DCE1DF;
+  border-radius: 10px;
 }
 .auth-stat-item {
   display: flex;
@@ -199,33 +198,35 @@
 .auth-stat-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #10201E;
   letter-spacing: -0.5px;
+  font-family: 'JetBrains Mono', monospace;
 }
 .auth-stat-label {
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.4);
+  color: #4B5A57;
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Brand badge */
+/* Brand badge — matches Landing sovereign badge: teal pill on light bg */
 .auth-brand-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.875rem;
   border-radius: 999px;
-  background: rgba(14, 110, 106, 0.15);
-  border: 1px solid rgba(14, 110, 106, 0.35);
-  color: rgba(14, 200, 196, 0.9);
+  background: #E4EFEE;
+  border: 1px solid rgba(14, 110, 106, 0.4);
+  color: #0E6E6A;
   font-size: 0.7rem;
   font-family: 'JetBrains Mono', monospace;
   letter-spacing: 0.06em;
+  font-weight: 600;
 }
 
-/* Steps (register) */
+/* Steps (register) — dark text on light panel */
 .auth-brand-steps {
   display: flex;
   flex-direction: column;
@@ -240,20 +241,20 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(245, 78, 0, 0.12);
-  border: 1px solid rgba(245, 78, 0, 0.3);
+  background: #E4EFEE;
+  border: 1px solid rgba(14, 110, 106, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 0.65rem;
   font-weight: 700;
   font-family: 'JetBrains Mono', monospace;
-  color: #F54E00;
+  color: #0E6E6A;
   flex-shrink: 0;
 }
 .auth-step-text {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: #4B5A57;
 }
 
 /* ============================================================
@@ -275,20 +276,19 @@
   overflow-y: auto;
 }
 
+/* Auth card — floating light card matching Landing's frosted hero panel */
 .auth-card {
   position: relative;
   width: 100%;
   max-width: 440px;
-  background: rgba(8, 14, 22, 0.75);
-  backdrop-filter: blur(28px) saturate(1.4);
-  -webkit-backdrop-filter: blur(28px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #FAFBFA;
+  border: 1px solid #DCE1DF;
   border-radius: 20px;
   padding: 2.25rem;
   box-shadow:
-    0 0 0 1px rgba(255,255,255,0.04) inset,
-    0 32px 64px rgba(0, 0, 0, 0.6),
-    0 0 40px rgba(14, 110, 106, 0.06);
+    0 1px 3px rgba(16, 32, 30, 0.06),
+    0 8px 24px rgba(16, 32, 30, 0.08),
+    0 0 0 1px rgba(14, 110, 106, 0.04) inset;
   animation: card-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .auth-card--wide {
@@ -300,14 +300,14 @@
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Glow top border accent */
+/* Top accent stripe — thin teal line matching Landing's teal brand accent */
 .auth-card-glow {
   position: absolute;
   top: 0;
   left: 10%;
   right: 10%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(245,78,0,0.7), rgba(14,110,106,0.5), transparent);
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #0E6E6A, rgba(14,110,106,0.4), transparent);
   border-radius: 999px;
 }
 
@@ -344,20 +344,22 @@
 .auth-logo-text {
   font-size: 1.05rem;
   font-weight: 700;
-  color: rgba(255,255,255,0.9);
+  color: #10201E;
   letter-spacing: -0.3px;
 }
 
+/* Card title matches Landing h2 text style */
 .auth-card-title {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #ffffff;
+  color: #10201E;
   letter-spacing: -0.75px;
   line-height: 1.2;
 }
+/* Card subtitle matches Dashboard mono label style */
 .auth-card-subtitle {
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.4);
+  color: #4B5A57;
   font-family: 'JetBrains Mono', monospace;
   letter-spacing: 0.03em;
 }
@@ -365,15 +367,16 @@
 /* ============================================================
    ERROR BANNER
    ============================================================ */
+/* Error banner — matches Dashboard critical alert bar colors */
 .auth-error-banner {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: rgba(185, 28, 28, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: #F7E9E6;
+  border: 1px solid rgba(178, 58, 46, 0.3);
   border-radius: 10px;
-  color: #fca5a5;
+  color: #B23A2E;
   font-size: 0.8rem;
   margin-bottom: 1rem;
   animation: slide-down 0.3s ease;
@@ -399,41 +402,45 @@
 
 .auth-field-group { display: flex; flex-direction: column; gap: 0.375rem; }
 
+/* Input label — matches Dashboard's uppercase mono label style */
 .auth-label {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.45);
+  color: #4B5A57;
   font-family: 'JetBrains Mono', monospace;
 }
 
+/* Input wrapper — light surface matching Dashboard metric card style */
 .auth-input-wrap {
   position: relative;
   display: flex;
   align-items: center;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid #DCE1DF;
+  background: #FFFFFF;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 .auth-input-wrap:hover {
-  border-color: rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.06);
+  border-color: #0E6E6A;
+  background: #FAFBFA;
 }
+/* Focus ring uses orange (#F54E00) matching the global *:focus-visible rule */
 .auth-input-wrap--focused {
   border-color: rgba(245, 78, 0, 0.6) !important;
-  background: rgba(245, 78, 0, 0.05) !important;
-  box-shadow: 0 0 0 3px rgba(245, 78, 0, 0.12), 0 0 0 1px rgba(245, 78, 0, 0.2) !important;
+  background: #FAFBFA !important;
+  box-shadow: 0 0 0 3px rgba(245, 78, 0, 0.1), 0 0 0 1px rgba(245, 78, 0, 0.2) !important;
 }
+/* Filled state: teal border matching Landing's teal accent */
 .auth-input-wrap--filled {
-  border-color: rgba(14, 110, 106, 0.4);
+  border-color: rgba(14, 110, 106, 0.5);
 }
 
 .auth-input-icon {
   position: absolute;
   left: 0.875rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: #4B5A57;
   display: flex;
   pointer-events: none;
   transition: color 0.2s ease;
@@ -449,24 +456,26 @@
   outline: none;
   padding: 0.7rem 0.875rem 0.7rem 2.5rem;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: #10201E;
   font-family: 'Inter', sans-serif;
 }
 .auth-input::placeholder {
-  color: rgba(255, 255, 255, 0.2);
+  color: #4B5A57;
+  opacity: 0.55;
 }
+/* Autofill on light background */
 .auth-input:-webkit-autofill,
 .auth-input:-webkit-autofill:hover,
 .auth-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: rgba(255, 255, 255, 0.9) !important;
-  -webkit-box-shadow: 0 0 0 1000px rgba(14, 22, 32, 0.9) inset !important;
-  caret-color: white;
+  -webkit-text-fill-color: #10201E !important;
+  -webkit-box-shadow: 0 0 0 1000px #FAFBFA inset !important;
+  caret-color: #10201E;
 }
 
 .auth-input-btn {
   position: absolute;
   right: 0.75rem;
-  color: rgba(255, 255, 255, 0.3);
+  color: #4B5A57;
   background: none;
   border: none;
   cursor: pointer;
@@ -476,15 +485,15 @@
   padding: 0.25rem;
   border-radius: 4px;
 }
-.auth-input-btn:hover { color: rgba(255,255,255,0.7); }
+.auth-input-btn:hover { color: #10201E; }
 
 .auth-hint {
   font-size: 0.7rem;
-  color: rgba(255,255,255,0.3);
+  color: #4B5A57;
   font-family: 'JetBrains Mono', monospace;
 }
 
-/* Select */
+/* Select — light surface */
 .auth-select-wrap { overflow: hidden; }
 .auth-select {
   width: 100%;
@@ -493,20 +502,20 @@
   outline: none;
   padding: 0.7rem 2.25rem 0.7rem 0.875rem;
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: #10201E;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
 }
 .auth-select option {
-  background: #0f1923;
-  color: rgba(255,255,255,0.9);
+  background: #FAFBFA;
+  color: #10201E;
 }
 .auth-select-chevron {
   position: absolute;
   right: 0.75rem;
-  color: rgba(255,255,255,0.3);
+  color: #4B5A57;
   pointer-events: none;
   display: flex;
 }
@@ -519,12 +528,13 @@
   align-items: center;
   justify-content: space-between;
 }
+/* Checkbox — light surface, orange accent on check */
 .auth-checkbox-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.5);
+  color: #4B5A57;
   cursor: pointer;
   user-select: none;
 }
@@ -533,8 +543,8 @@
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid #DCE1DF;
+  background: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -542,9 +552,10 @@
   transition: border-color 0.2s, background 0.2s;
 }
 .auth-checkbox-label:hover .auth-checkbox-custom {
-  border-color: rgba(245,78,0,0.5);
+  border-color: rgba(245, 78, 0, 0.5);
 }
 
+/* Inline link — orange accent matches global focus color */
 .auth-link {
   font-size: 0.8rem;
   color: #F54E00;
@@ -552,17 +563,18 @@
   font-weight: 500;
   transition: color 0.15s ease;
 }
-.auth-link:hover { color: #ff7235; text-decoration: underline; }
+.auth-link:hover { color: #d94400; text-decoration: underline; }
 
 /* ============================================================
    TERMS
    ============================================================ */
+/* Terms — light colors */
 .auth-terms-label {
   display: flex;
   align-items: flex-start;
   gap: 0.625rem;
   font-size: 0.78rem;
-  color: rgba(255,255,255,0.5);
+  color: #4B5A57;
   cursor: pointer;
   user-select: none;
   line-height: 1.5;
@@ -571,8 +583,8 @@
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.04);
+  border: 1px solid #DCE1DF;
+  background: #FFFFFF;
   flex-shrink: 0;
   margin-top: 1px;
   display: flex;
@@ -582,11 +594,11 @@
   cursor: pointer;
 }
 .auth-terms-box--checked {
-  border-color: rgba(245,78,0,0.6);
-  background: rgba(245,78,0,0.08);
+  border-color: rgba(245, 78, 0, 0.6);
+  background: rgba(245, 78, 0, 0.07);
 }
 .auth-terms-label:hover .auth-terms-box {
-  border-color: rgba(245,78,0,0.5);
+  border-color: rgba(245, 78, 0, 0.5);
 }
 
 /* ============================================================
@@ -621,6 +633,7 @@
 /* ============================================================
    SUBMIT BUTTON
    ============================================================ */
+/* Primary submit button — matches Landing CTA: teal bg, white text */
 .auth-submit-btn {
   display: flex;
   align-items: center;
@@ -628,7 +641,7 @@
   gap: 0.5rem;
   width: 100%;
   padding: 0.85rem 1.5rem;
-  background: linear-gradient(135deg, #F54E00 0%, #d93e00 100%);
+  background: #0E6E6A;
   color: #ffffff;
   font-size: 0.9rem;
   font-weight: 600;
@@ -638,36 +651,38 @@
   letter-spacing: 0.01em;
   position: relative;
   overflow: hidden;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
-  box-shadow: 0 4px 20px rgba(245, 78, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, opacity 0.2s ease;
+  box-shadow: 0 1px 3px rgba(16, 32, 30, 0.12), 0 4px 12px rgba(14, 110, 106, 0.25);
   margin-top: 0.25rem;
 }
 .auth-submit-btn::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 60%);
   pointer-events: none;
 }
 .auth-submit-btn:hover:not(:disabled) {
+  background: #0A5653;
   transform: translateY(-1px);
-  box-shadow: 0 8px 28px rgba(245, 78, 0, 0.45);
+  box-shadow: 0 4px 16px rgba(14, 110, 106, 0.35);
 }
 .auth-submit-btn:active:not(:disabled) {
+  background: #084F4C;
   transform: translateY(0px);
-  box-shadow: 0 2px 10px rgba(245, 78, 0, 0.3);
+  box-shadow: 0 1px 4px rgba(14, 110, 106, 0.2);
 }
 .auth-submit-btn--loading,
 .auth-submit-btn:disabled {
-  opacity: 0.75;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* Spinner */
+/* Spinner — white on teal button */
 .auth-spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid rgba(255,255,255,0.3);
+  border: 2px solid rgba(255, 255, 255, 0.35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -680,6 +695,7 @@
 /* ============================================================
    DIVIDER
    ============================================================ */
+/* Divider — light border matching Dashboard table dividers */
 .auth-divider {
   display: flex;
   align-items: center;
@@ -689,22 +705,23 @@
 .auth-divider-line {
   flex: 1;
   height: 1px;
-  background: rgba(255,255,255,0.08);
+  background: #DCE1DF;
 }
 .auth-divider-text {
   font-size: 0.65rem;
   letter-spacing: 0.12em;
-  color: rgba(255,255,255,0.25);
+  color: #4B5A57;
   font-family: 'JetBrains Mono', monospace;
 }
 
 /* ============================================================
    FOOTER LINK
    ============================================================ */
+/* Footer — dark secondary text, orange accent link */
 .auth-footer {
   text-align: center;
   font-size: 0.8rem;
-  color: rgba(255,255,255,0.35);
+  color: #4B5A57;
 }
 .auth-footer-link {
   color: #F54E00;
@@ -712,7 +729,7 @@
   text-decoration: none;
   transition: color 0.15s ease;
 }
-.auth-footer-link:hover { color: #ff7235; text-decoration: underline; }
+.auth-footer-link:hover { color: #d94400; text-decoration: underline; }
 
 /* ============================================================
    TOPBAR

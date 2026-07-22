@@ -42,16 +42,16 @@ function Particle({ style }) {
   return <div className="auth-particle" style={style} />;
 }
 
-const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
   id: i,
   style: {
     left: `${Math.random() * 100}%`,
     top: `${Math.random() * 100}%`,
-    width: `${2 + Math.random() * 4}px`,
-    height: `${2 + Math.random() * 4}px`,
+    width: `${2 + Math.random() * 3}px`,
+    height: `${2 + Math.random() * 3}px`,
     animationDelay: `${Math.random() * 6}s`,
-    animationDuration: `${6 + Math.random() * 8}s`,
-    opacity: 0.15 + Math.random() * 0.25,
+    animationDuration: `${8 + Math.random() * 10}s`,
+    '--op': 0.08 + Math.random() * 0.12,
   },
 }));
 
@@ -112,11 +112,12 @@ export default function LoginPage() {
       <aside className="auth-brand-panel">
         <div className="auth-brand-inner">
           <div className="auth-brand-logo">
-            <Anchor size={28} className="text-[#F54E00]" />
+            <Anchor size={28} className="text-[#0E6E6A]" />
           </div>
           <h1 className="auth-brand-title">
             Padava<br />
-            <span className="text-[#F54E00]">Processor</span>
+            {/* Teal accent — matches Landing page primary brand color */}
+            <span className="text-[#0E6E6A]">Processor</span>
           </h1>
           <p className="auth-brand-sub">
             Sovereign-grade maritime intelligence for India's critical energy supply chain.
@@ -209,7 +210,7 @@ export default function LoginPage() {
                   className="auth-checkbox"
                 />
                 <span className="auth-checkbox-custom" aria-hidden>
-                  {remember && <CheckCircle2 size={10} className="text-[#F54E00]" />}
+                  {remember && <CheckCircle2 size={10} className="text-[#0E6E6A]" />}
                 </span>
                 <span>Remember me</span>
               </label>

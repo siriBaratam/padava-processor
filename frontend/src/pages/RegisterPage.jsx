@@ -78,8 +78,8 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
     width: `${2 + Math.random() * 4}px`,
     height: `${2 + Math.random() * 4}px`,
     animationDelay: `${Math.random() * 6}s`,
-    animationDuration: `${6 + Math.random() * 8}s`,
-    opacity: 0.15 + Math.random() * 0.25,
+    animationDuration: `${8 + Math.random() * 10}s`,
+    '--op': 0.08 + Math.random() * 0.12,
   },
 }));
 
@@ -163,11 +163,11 @@ export default function RegisterPage() {
       <aside className="auth-brand-panel">
         <div className="auth-brand-inner">
           <div className="auth-brand-logo">
-            <Anchor size={28} className="text-[#F54E00]" />
+            <Anchor size={28} className="text-[#0E6E6A]" />
           </div>
           <h1 className="auth-brand-title">
             Join the<br />
-            <span className="text-[#F54E00]">Mission</span>
+            <span className="text-[#0E6E6A]">Mission</span>
           </h1>
           <p className="auth-brand-sub">
             Request clearance to access India's premier maritime energy intelligence platform.
