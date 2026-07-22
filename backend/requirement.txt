@@ -15,6 +15,8 @@ beautifulsoup4
 lxml
 
 pydantic
+pydantic-settings
+
 
 rich
 tqdm
@@ -26,3 +28,7 @@ langchain
 langchain-community
 
 json-repair
+
+langchain-groq
+langchain-core
+

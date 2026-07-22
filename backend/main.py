@@ -1,7 +1,20 @@
+import sys
+from pathlib import Path
+
 from scout.scout import run_scout
 from accountant import run_accountant
 from strategist import run_strategist
 from allocator import run_allocator
+
+# ``dealmaker.py`` lives inside the backend/dealmaker directory.  Put that
+# directory ahead of the project root so this imports the module, rather than
+# the directory itself.
+DEALMAKER_DIR = Path(__file__).resolve().parent / "dealmaker"
+sys.path.insert(0, str(DEALMAKER_DIR))
+
+from dealmaker import run_dealmaker
+# from strategist import run_strategist
+# from allocator import run_allocator
 # # from navigator import run_navigator
 
 
@@ -51,6 +64,20 @@ def main():
     # #     allocator_output
     # # )
 
+    print("\n")
+
+    print("=" * 60)
+    print("Running DEALMAKER Agent...")
+    print("=" * 60)
+
+    dealmaker_output = run_dealmaker()
+
+    print("Dealmaker output:")
+    print(dealmaker_output["dealmaker"])
+
+    print("Navigator output:")
+    print(dealmaker_output["navigator"])
 
 if __name__ == "__main__":
     main()
+
