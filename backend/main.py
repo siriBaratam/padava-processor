@@ -16,8 +16,6 @@ from dealmaker import run_dealmaker
 # from strategist import run_strategist
 # from allocator import run_allocator
 # # from navigator import run_navigator
-
-
 def main():
 
     print("=" * 60)

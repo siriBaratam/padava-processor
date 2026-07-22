@@ -1,44 +1,110 @@
-import React from 'react';
-import { Search, Bell, ChevronDown } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, Bell, LogOut, Settings, User, ChevronDown, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from './ui/DropdownMenu';
 
-export default function Topbar({ title = "Dashboard" }) {
+export default function Topbar({ title = 'Dashboard' }) {
+  const navigate = useNavigate();
+  const [notifCount] = useState(3);
+
+  const handleLogout = () => {
+    navigate('/login');
+  };
+
   return (
-    <header className="fixed top-0 right-0 left-14 lg:left-60 z-30 h-16 bg-[#F2F4F3]/95 backdrop-blur-md border-b border-[#DCE1DF] px-4 md:px-6 flex items-center justify-between transition-all duration-200">
-      <div className="flex items-center space-x-3">
-        <h1 className="text-lg md:text-xl font-semibold text-[#10201E] tracking-tight">
-          {title}
-        </h1>
-        <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono bg-[#F7E9E6] text-[#B23A2E] border border-[#B23A2E]/30 font-bold">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#B23A2E] animate-pulse mr-1.5"></span>
+    <header className="topbar">
+      {/* Left — title */}
+      <div className="topbar-left">
+        <h1 className="topbar-title">{title}</h1>
+        <span className="topbar-badge">
+          <span className="topbar-badge-dot" />
           CRITICAL MODE
         </span>
       </div>
 
-      <div className="flex items-center space-x-3 md:space-x-4">
-        {/* Search Bar */}
-        <div className="relative hidden sm:block">
-          <Search className="w-4 h-4 text-[#4B5A57] absolute left-3 top-1/2 -translate-y-1/2" />
+      {/* Right — actions */}
+      <div className="topbar-right">
+        {/* Search */}
+        <div className="topbar-search-wrap">
+          <Search className="topbar-search-icon" size={14} />
           <input
             type="text"
-            placeholder="Search vessels, refineries, corridors..."
-            className="w-48 lg:w-64 bg-[#FAFBFA] border border-[#DCE1DF] rounded-md pl-9 pr-3 py-1.5 text-xs text-[#10201E] focus:outline-none focus:border-[#0E6E6A] placeholder:text-[#4B5A57] font-sans"
+            placeholder="Search vessels, refineries…"
+            className="topbar-search"
           />
         </div>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-md bg-[#FAFBFA] border border-[#DCE1DF] text-[#4B5A57] hover:text-[#10201E] transition-colors">
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#B23A2E] animate-pulse"></span>
+        <button className="topbar-icon-btn" aria-label="Notifications">
+          <Bell size={16} />
+          {notifCount > 0 && (
+            <span className="topbar-notif-badge">{notifCount}</span>
+          )}
         </button>
 
-        {/* User Pill */}
-        <div className="flex items-center space-x-2 pl-2 border-l border-[#DCE1DF]">
-          <div className="w-7 h-7 rounded-full bg-[#E4EFEE] border border-[#0E6E6A]/30 flex items-center justify-center text-[#0E6E6A] font-bold text-xs">
-            RN
-          </div>
-          <span className="hidden lg:inline text-xs font-medium text-[#10201E]">Min. Petroleum</span>
-          <ChevronDown className="w-3.5 h-3.5 text-[#4B5A57] hidden sm:inline" />
-        </div>
+        {/* Divider */}
+        <div className="topbar-divider" aria-hidden />
+
+        {/* User Profile Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="topbar-user-btn" aria-label="User menu">
+              <div className="topbar-avatar">
+                <span>RN</span>
+              </div>
+              <div className="topbar-user-info">
+                <span className="topbar-user-name">Rajesh Nair</span>
+                <span className="topbar-user-role">Min. Petroleum</span>
+              </div>
+              <ChevronDown size={13} className="topbar-user-chevron" />
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="end">
+            {/* User meta header */}
+            <div className="topbar-dd-header">
+              <div className="topbar-dd-avatar">
+                <span>RN</span>
+              </div>
+              <div>
+                <p className="topbar-dd-name">Rajesh Nair</p>
+                <p className="topbar-dd-email">nair.r@petroleum.gov.in</p>
+              </div>
+            </div>
+
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Account</DropdownMenuLabel>
+
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <User size={14} />
+              Profile Settings
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => navigate('/settings')}>
+              <Settings size={14} />
+              Preferences
+            </DropdownMenuItem>
+
+            <DropdownMenuItem onClick={() => {}}>
+              <Shield size={14} />
+              Security & Access
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+              <LogOut size={14} />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

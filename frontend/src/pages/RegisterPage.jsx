@@ -1,144 +1,378 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Shield, User, Mail, Building, Lock, ArrowRight } from 'lucide-react';
+import {Title} from "../components/ui/Title.jsx";
+import {
+  Shield, Eye, EyeOff, Lock, Mail, User, Building,
+  ArrowRight, Anchor, CheckCircle2, AlertCircle, ChevronDown
+} from 'lucide-react';
 
+/* ── tiny shared helpers ───────────────────────────── */
+function InputField({ id, label, type = 'text', icon: Icon, value, onChange, placeholder, required, rightSlot }) {
+  const [focused, setFocused] = useState(false);
+  const hasValue = value && value.length > 0;
+
+  return (
+    <div className="auth-field-group">
+      <label htmlFor={id} className="auth-label">{label}</label>
+      <div className={`auth-input-wrap ${focused ? 'auth-input-wrap--focused' : ''} ${hasValue && !focused ? 'auth-input-wrap--filled' : ''}`}>
+        <span className="auth-input-icon">
+          <Icon size={15} />
+        </span>
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          placeholder={placeholder}
+          required={required}
+          className="auth-input"
+          autoComplete="off"
+        />
+        {rightSlot}
+      </div>
+    </div>
+  );
+}
+
+function SelectField({ id, label, value, onChange, options }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div className="auth-field-group">
+      <label htmlFor={id} className="auth-label">{label}</label>
+      <div className={`auth-input-wrap auth-select-wrap ${focused ? 'auth-input-wrap--focused' : ''}`}>
+        <select
+          id={id}
+          value={value}
+          onChange={onChange}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className="auth-select"
+          required
+        >
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+        <span className="auth-select-chevron">
+          <ChevronDown size={14} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+const ROLE_OPTIONS = [
+  { value: 'Viewer', label: 'Viewer — Read Only' },
+  { value: 'Analyst', label: 'Analyst — Intelligence' },
+  { value: 'Manager', label: 'Manager — Tactical Ops' },
+  { value: 'Admin', label: 'Admin — Sovereign Executive' },
+];
+
+const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
+  id: i,
+  style: {
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    width: `${2 + Math.random() * 4}px`,
+    height: `${2 + Math.random() * 4}px`,
+    animationDelay: `${Math.random() * 6}s`,
+    animationDuration: `${6 + Math.random() * 8}s`,
+    opacity: 0.15 + Math.random() * 0.25,
+  },
+}));
+
+/* ====================================================================
+   REGISTER PAGE
+   ==================================================================== */
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const [role, setRole] = useState('Analyst');
 
-  const handleRegister = (e) => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    organisation: '',
+    role: 'Analyst',
+    password: '',
+    confirmPassword: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const update = (key) => (e) => setFormData((f) => ({ ...f, [key]: e.target.value }));
+
+  const handleRegister = async (e) => {
     e.preventDefault();
+    setError('');
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
+      return;
+    }
+    if (!agreed) {
+      setError('You must accept the security data disclosure policy.');
+      return;
+    }
+
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 1400));
     navigate('/dashboard');
   };
 
-  return (
-    <div className="min-h-screen bg-[#F7F7F4] flex flex-col justify-center items-center px-4 py-12 relative overflow-hidden">
-      <div className="w-full max-w-lg glass-card p-8 relative z-10 shadow-sm border-[#E6E5E0]">
-        <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-3 group">
-            <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/30 group-hover:border-orange-500/60 transition-colors">
-              <Shield className="w-6 h-6 text-[#F54E00]" />
-            </div>
-            <span className="text-xl font-bold text-[#26251E]">
-              EnergyGuard <span className="text-[#F54E00] font-mono text-sm">AI</span>
-            </span>
-          </Link>
-          <h2 className="text-2xl font-normal tracking-tight-title text-[#26251E]">Request Platform Access</h2>
-          <p className="text-xs text-[#807D72] mt-1 font-mono">
-            SOVEREIGN RESILIENCE SYSTEM · USER CREDENTIAL REGISTRATION
-          </p>
-        </div>
+  const passwordStrength = (() => {
+    const p = formData.password;
+    if (!p) return 0;
+    let s = 0;
+    if (p.length >= 8) s++;
+    if (/[A-Z]/.test(p)) s++;
+    if (/[0-9]/.test(p)) s++;
+    if (/[^A-Za-z0-9]/.test(p)) s++;
+    return s;
+  })();
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-[#26251E] mb-1 font-mono">FULL NAME</label>
-            <div className="relative">
-              <User className="w-4 h-4 text-[#807D72] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
+  const strengthLabel = ['', 'Weak', 'Fair', 'Good', 'Strong'][passwordStrength];
+  const strengthColor = ['', '#ef4444', '#f97316', '#eab308', '#22c55e'][passwordStrength];
+
+  return (
+    <div className="auth-root">
+      {/* ── Background ───────────────────────────────────── */}
+      <div className="auth-bg">
+        <img
+          src="/cargo-ship.jpg"
+          alt="Cargo ships at sea"
+          className="auth-bg-img"
+          draggable="false"
+        />
+        <div className="auth-bg-vignette" />
+        <div className="auth-bg-gradient" />
+        <div className="auth-scanline" />
+      </div>
+
+      {/* Particles */}
+      <div className="auth-particles" aria-hidden>
+        {PARTICLES.map((p) => (
+          <div key={p.id} className="auth-particle" style={p.style} />
+        ))}
+      </div>
+
+      {/* ── Left branding panel ─────────────────────────── */}
+      <aside className="auth-brand-panel">
+        <div className="auth-brand-inner">
+          <div className="auth-brand-logo">
+            <Anchor size={28} className="text-[#F54E00]" />
+          </div>
+          <h1 className="auth-brand-title">
+            Join the<br />
+            <span className="text-[#F54E00]">Mission</span>
+          </h1>
+          <p className="auth-brand-sub">
+            Request clearance to access India's premier maritime energy intelligence platform.
+          </p>
+
+          <div className="auth-brand-steps">
+            {[
+              { step: '01', text: 'Register your credentials' },
+              { step: '02', text: 'Verify official email' },
+              { step: '03', text: 'Access cleared' },
+            ].map((s) => (
+              <div key={s.step} className="auth-step-item">
+                <span className="auth-step-num">{s.step}</span>
+                <span className="auth-step-text">{s.text}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="auth-brand-badge">
+            <Shield size={12} />
+            <span>Government-Grade Encryption</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Card panel ───────────────────────────────────── */}
+      <main className="auth-card-panel auth-card-panel--register">
+        <div className="auth-card auth-card--wide" role="main" aria-label="Registration form">
+          <div className="auth-card-glow" />
+
+          {/* Header */}
+          <header className="auth-card-header">
+            <Title/>
+            <h2 className="auth-card-title">Request Platform Access</h2>
+            <p className="auth-card-subtitle">Create your sovereign energy intelligence account</p>
+          </header>
+
+          {/* Error banner */}
+          {error && (
+            <div className="auth-error-banner" role="alert">
+              <AlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleRegister} className="auth-form" noValidate>
+            {/* Row 1 */}
+            <div className="auth-grid-2">
+              <InputField
+                id="reg-name"
+                label="Full Name"
+                icon={User}
+                value={formData.fullName}
+                onChange={update('fullName')}
                 placeholder="Dr. Rajesh Nair"
                 required
-                className="w-full bg-[#FFFFFF] border border-[#E6E5E0] rounded-md pl-9 pr-3 py-2 text-sm text-[#26251E] focus:outline-none focus:border-[#F54E00]"
               />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-[#26251E] mb-1 font-mono">OFFICIAL EMAIL</label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-[#807D72] absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
+              <InputField
+                id="reg-email"
+                label="Official Email"
                 type="email"
+                icon={Mail}
+                value={formData.email}
+                onChange={update('email')}
                 placeholder="nair.r@petroleum.gov.in"
                 required
-                className="w-full bg-[#FFFFFF] border border-[#E6E5E0] rounded-md pl-9 pr-3 py-2 text-sm text-[#26251E] focus:outline-none focus:border-[#F54E00]"
               />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[#26251E] mb-1 font-mono">ORGANISATION</label>
-              <div className="relative">
-                <Building className="w-4 h-4 text-[#807D72] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Ministry of Petroleum"
-                  required
-                  className="w-full bg-[#FFFFFF] border border-[#E6E5E0] rounded-md pl-9 pr-3 py-2 text-sm text-[#26251E] focus:outline-none focus:border-[#F54E00]"
-                />
-              </div>
+            {/* Row 2 */}
+            <div className="auth-grid-2">
+              <InputField
+                id="reg-org"
+                label="Organisation"
+                icon={Building}
+                value={formData.organisation}
+                onChange={update('organisation')}
+                placeholder="Ministry of Petroleum"
+                required
+              />
+              <SelectField
+                id="reg-role"
+                label="Role Clearance"
+                value={formData.role}
+                onChange={update('role')}
+                options={ROLE_OPTIONS}
+              />
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-[#26251E] mb-1 font-mono">ROLE CLEARANCE</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-[#FFFFFF] border border-[#E6E5E0] rounded-md px-3 py-2 text-sm text-[#26251E] focus:outline-none focus:border-[#F54E00] font-sans"
+            {/* Password Row */}
+            <div className="auth-grid-2">
+              <div>
+                <InputField
+                  id="reg-password"
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                  icon={Lock}
+                  value={formData.password}
+                  onChange={update('password')}
+                  placeholder="••••••••"
+                  required
+                  rightSlot={
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="auth-input-btn"
+                    >
+                      {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  }
+                />
+                {/* Password strength bar */}
+                {formData.password && (
+                  <div className="auth-strength-bar-wrap">
+                    <div className="auth-strength-track">
+                      {[1, 2, 3, 4].map((n) => (
+                        <div
+                          key={n}
+                          className="auth-strength-segment"
+                          style={{
+                            backgroundColor:
+                              passwordStrength >= n ? strengthColor : 'rgba(255,255,255,0.1)',
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="auth-strength-label" style={{ color: strengthColor }}>
+                      {strengthLabel}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <InputField
+                id="reg-confirm"
+                label="Confirm Password"
+                type={showConfirm ? 'text' : 'password'}
+                icon={Lock}
+                value={formData.confirmPassword}
+                onChange={update('confirmPassword')}
+                placeholder="••••••••"
+                required
+                rightSlot={
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="auth-input-btn"
+                  >
+                    {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                }
+              />
+            </div>
+
+            {/* Terms */}
+            <label className="auth-terms-label">
+              <span
+                className={`auth-terms-box ${agreed ? 'auth-terms-box--checked' : ''}`}
+                onClick={() => setAgreed((v) => !v)}
+                role="checkbox"
+                aria-checked={agreed}
+                tabIndex={0}
+                onKeyDown={(e) => e.key === ' ' && setAgreed((v) => !v)}
               >
-                <option value="Viewer">Viewer (Read Only)</option>
-                <option value="Analyst">Analyst (Intelligence)</option>
-                <option value="Manager">Manager (Tactical Operations)</option>
-                <option value="Admin">Admin (Sovereign Executive)</option>
-              </select>
-            </div>
-          </div>
+                {agreed && <CheckCircle2 size={12} className="text-[#F54E00]" />}
+              </span>
+              <span>
+                I accept government security{' '}
+                <a href="#" className="auth-link">data disclosure policies</a>{' '}
+                and the platform terms of service.
+              </span>
+            </label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[#26251E] mb-1 font-mono">PASSWORD</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-[#807D72] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-[#FFFFFF] border border-[#E6E5E0] rounded-md pl-9 pr-3 py-2 text-sm text-[#26251E] focus:outline-none focus:border-[#F54E00]"
-                />
-              </div>
-            </div>
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`auth-submit-btn ${loading ? 'auth-submit-btn--loading' : ''}`}
+            >
+              {loading ? (
+                <>
+                  <span className="auth-spinner" />
+                  <span>Registering credentials…</span>
+                </>
+              ) : (
+                <>
+                  <span>Register Credentials</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
 
-            <div>
-              <label className="block text-xs font-medium text-[#26251E] mb-1 font-mono">CONFIRM PASSWORD</label>
-              <div className="relative">
-                <Lock className="w-4 h-4 text-[#807D72] absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  className="w-full bg-[#FFFFFF] border border-[#E6E5E0] rounded-md pl-9 pr-3 py-2 text-sm text-[#26251E] focus:outline-none focus:border-[#F54E00]"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 text-xs text-[#5A5852] pt-2">
-            <input
-              type="checkbox"
-              required
-              defaultChecked
-              className="rounded border-[#E6E5E0] bg-[#FFFFFF] text-[#F54E00] focus:ring-orange-500/20"
-            />
-            <span>I accept government security data disclosure policies.</span>
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-3 bg-[#F54E00] hover:bg-[#D04200] text-white font-semibold rounded-md transition-all shadow-sm flex items-center justify-center space-x-2"
-          >
-            <span>Register Credentials</span>
-            <ArrowRight className="w-4 h-4" />
-          </button>
-        </form>
-
-        <div className="mt-6 text-center text-xs text-[#807D72] border-t border-[#E6E5E0] pt-4">
-          <span>Already have registered credentials? </span>
-          <Link to="/login" className="text-[#F54E00] font-semibold hover:underline">
-            Login
-          </Link>
+          {/* Footer */}
+          <p className="auth-footer" style={{ marginTop: '1.25rem' }}>
+            Already have registered credentials?{' '}
+            <Link to="/login" className="auth-footer-link">
+              Sign In
+            </Link>
+          </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
