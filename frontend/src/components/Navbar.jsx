@@ -38,7 +38,7 @@ export default function Navbar() {
           </Link>
           <Link
             to="/dashboard"
-            className="px-4 py-2 text-sm font-medium bg-[#0E6E6A] hover:bg-[#0A5653] text-white font-semibold rounded-md transition-all duration-150 shadow-sm hover:-translate-y-[1px] hover:shadow-md flex items-center space-x-1.5"
+            className="px-4 py-2 text-sm  bg-[#0E6E6A] hover:bg-[#0A5653] text-white font-semibold rounded-md transition-all duration-150 shadow-sm hover:-translate-y-[1px] hover:shadow-md flex items-center space-x-1.5"
           >
             <span>Dashboard</span>
             <ArrowRight className="w-4 h-4" />
