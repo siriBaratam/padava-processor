@@ -59,10 +59,6 @@ def main():
     )
 
     print(allocator_output)
-    print("\n")
-    # # navigator_output = run_navigator(
-    # #     allocator_output
-    # # )
 
     print("\n")
 
